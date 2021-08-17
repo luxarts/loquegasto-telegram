@@ -63,7 +63,7 @@ func (c *parserController) AddPayment(m *tg.Message) {
 	}
 
 	// Amount capture group 1
-	amount, err := strconv.ParseInt(result[0][1], 10, 64)
+	amount, err := strconv.ParseFloat(result[0][1], 64)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
