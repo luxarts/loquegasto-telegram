@@ -9,6 +9,7 @@ import (
 
 type TransactionsService interface {
 	AddPayment(userID int, msgID int, amount float64, description string, source string, timestamp int64) error
+	GetTotal(userID int) (float64, error)
 }
 
 type transactionsService struct {
@@ -36,4 +37,17 @@ func (srv *transactionsService) AddPayment(userID int, msgID int, amount float64
 	})
 
 	return srv.repo.Create(&transactionDTO, token)
+}
+
+func (srv *transactionsService) GetTotal(userID int) (float64, error) {
+	token := jwt.GenerateToken(nil, &jwt.Payload{
+		Subject: userID,
+	})
+
+	r, err := srv.repo.GetTotal(token)
+	if err != nil {
+		return 0, err
+	}
+
+	return r.Total, nil
 }

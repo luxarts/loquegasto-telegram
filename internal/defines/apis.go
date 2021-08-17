@@ -1,5 +1,6 @@
 package defines
 
 const (
-	APITransactionPostURL = "/transaction"
+	APITransactionPostURL   = "/transaction"
+	APITransactionsGetTotal = "/transactions/total"
 )
