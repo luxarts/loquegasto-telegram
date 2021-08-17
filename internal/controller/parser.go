@@ -1,18 +1,21 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
-	tg "gopkg.in/tucnak/telebot.v2"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
 	"strconv"
+
+	tg "gopkg.in/tucnak/telebot.v2"
 )
 
 const (
 	messageTypeAddPayment = iota
 	messageTypeUnknown
 )
+
 type messageType int
 
 type ParserController interface {
@@ -21,13 +24,13 @@ type ParserController interface {
 	AddPayment(m *tg.Message)
 }
 type parserController struct {
-	bot *tg.Bot
+	bot    *tg.Bot
 	txnSrv service.TransactionsService
 }
 
 func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService) ParserController {
 	return &parserController{
-		bot: bot,
+		bot:    bot,
 		txnSrv: txnSrv,
 	}
 }
@@ -49,22 +52,23 @@ func (c *parserController) GetTypeFromMessage(msg string) messageType {
 
 	return messageTypeUnknown
 }
-func (c *parserController) AddPayment(m *tg.Message){
+func (c *parserController) AddPayment(m *tg.Message) {
 	// Search for amount and description
 	result := defines.RegexAddPayment.FindAllStringSubmatch(m.Text, -1)
 
-	if len(result) != 1 || len(result[0]) < 3  || len(result[0]) > 4 {
-		c.errorHandler(m)
+	// Validate results
+	if len(result) != 1 || len(result[0]) < 3 || len(result[0]) > 4 {
+		c.errorHandler(m, errors.New("invalid-syntax"))
 		return
 	}
 
 	// Amount capture group 1
 	amount, err := strconv.ParseInt(result[0][1], 10, 64)
 	if err != nil {
-		c.errorHandler(m)
+		c.errorHandler(m, err)
 		return
 	}
-	// Descccription capture group 2
+	// Description capture group 2
 	description := result[0][2]
 
 	source := ""
@@ -73,9 +77,9 @@ func (c *parserController) AddPayment(m *tg.Message){
 		source = result[0][3]
 	}
 
-	err = c.txnSrv.AddPayment(m.ID, amount, description, source)
+	err = c.txnSrv.AddPayment(m.Sender.ID, m.ID, amount, description, source, m.Unixtime)
 	if err != nil {
-		c.errorHandler(m)
+		c.errorHandler(m, err)
 		return
 	}
 
@@ -93,12 +97,13 @@ func (c *parserController) AddPayment(m *tg.Message){
 		tg.ModeMarkdown,
 	)
 	if err != nil {
-		c.errorHandler(m)
+		c.errorHandler(m, err)
 	}
 }
 
-func (c *parserController) errorHandler(m *tg.Message){
-	_, err := c.bot.Send(m.Sender, defines.MessageError)
+func (c *parserController) errorHandler(m *tg.Message, err error) {
+	log.Println(err)
+	_, err = c.bot.Send(m.Sender, defines.MessageError)
 	if err != nil {
 		log.Println(err)
 	}

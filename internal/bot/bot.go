@@ -1,14 +1,16 @@
 package bot
 
 import (
-	"github.com/go-resty/resty/v2"
-	tg "gopkg.in/tucnak/telebot.v2"
 	"log"
 	"loquegasto-telegram/internal/controller"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/repository"
 	"loquegasto-telegram/internal/service"
+	"os"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	tg "gopkg.in/tucnak/telebot.v2"
 )
 
 var bot *tg.Bot
@@ -16,13 +18,11 @@ var bot *tg.Bot
 func New() *tg.Bot {
 	var err error
 	bot, err = tg.NewBot(tg.Settings{
-		URL:         "",
-		Token:       defines.TelegramToken,
-		Updates:     0,
-		Poller:      &tg.LongPoller{
-			Timeout:        30*time.Second,
+		Token: os.Getenv(defines.EnvTelegramToken),
+		Poller: &tg.LongPoller{
+			Timeout: 30 * time.Second,
 		},
-		Verbose:     true,
+		Verbose: true,
 	})
 	if err != nil {
 		log.Fatalln(err)
@@ -33,7 +33,7 @@ func New() *tg.Bot {
 	return bot
 }
 
-func mapCommands(){
+func mapCommands() {
 	// Init rest client
 	rc := resty.New()
 
