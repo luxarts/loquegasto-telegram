@@ -6,6 +6,6 @@ const (
 	MessageError = "Ups! Hubo un error."
 
 	// AddPayment
-	MessagePaymentResponse           = "Listo, ya anoté tu pago de _%s_ por $%.2f."
-	MessagePaymentResponseWithSource = "Listo, ya anoté tu pago de _%s_ por $%.2f con %s."
+	MessagePaymentResponse           = "Listo, ya anoté tu pago de _%s_ por $%s."
+	MessagePaymentResponseWithSource = "Listo, ya anoté tu pago de _%s_ por $%s con %s."
 )

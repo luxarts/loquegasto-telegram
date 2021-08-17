@@ -3,5 +3,5 @@ package defines
 import "regexp"
 
 var (
-	RegexAddPayment = regexp.MustCompile("^\\$*(\\d+(?:\\.\\d+)*) (.+[^()])(?: \\((.+[^()])\\))*$")
+	RegexAddPayment = regexp.MustCompile("^\\$*(\\d+(?:(?:\\.|,)\\d+)*) (.+[^()])(?: \\((.+[^()])\\))*$")
 )

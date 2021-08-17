@@ -7,6 +7,7 @@ import (
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
 	"strconv"
+	"strings"
 
 	tg "gopkg.in/tucnak/telebot.v2"
 )
@@ -63,19 +64,22 @@ func (c *parserController) AddPayment(m *tg.Message) {
 	}
 
 	// Amount capture group 1
-	amount, err := strconv.ParseFloat(result[0][1], 64)
+	amountStr := result[0][1]
+
+	// Parse decimal as dot for internal usage and colon for response
+	amountStr = strings.Replace(amountStr, ",", ".", 1)
+	amountStrColon := strings.Replace(amountStr, ".", ",", 1)
+	amount, err := strconv.ParseFloat(amountStr, 64)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
+
 	// Description capture group 2
 	description := result[0][2]
 
-	source := ""
-	// Check if source is provided (capture group 3)
-	if len(result[0]) == 4 {
-		source = result[0][3]
-	}
+	// Source will be empty if capture group 3 isn't set
+	source := result[0][3]
 
 	err = c.txnSrv.AddPayment(m.Sender.ID, m.ID, amount, description, source, m.Unixtime)
 	if err != nil {
@@ -83,9 +87,9 @@ func (c *parserController) AddPayment(m *tg.Message) {
 		return
 	}
 
-	msg := fmt.Sprintf(defines.MessagePaymentResponse, description, amount)
+	msg := fmt.Sprintf(defines.MessagePaymentResponse, description, amountStrColon)
 	if source != "" {
-		msg = fmt.Sprintf(defines.MessagePaymentResponseWithSource, description, amount, source)
+		msg = fmt.Sprintf(defines.MessagePaymentResponseWithSource, description, amountStrColon, source)
 	}
 
 	// Respond to the user
