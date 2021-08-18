@@ -19,6 +19,6 @@ const (
 	MessageTotalResponse = "Llevás gastado *$%s*."
 
 	// AddPayment
-	MessagePaymentResponse           = "✅Listo, ya anoté tu pago de *%s* por *$%s*."
-	MessagePaymentResponseWithSource = "✅Listo, ya anoté tu pago de *%s* por *$%s* con *%s*."
+	MessagePaymentResponse           = "Listo, ya anoté tu pago de *%s* por *$%s*."
+	MessagePaymentResponseWithSource = "Listo, ya anoté tu pago de *%s* por *$%s* con *%s*."
 )

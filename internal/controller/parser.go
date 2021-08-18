@@ -58,7 +58,7 @@ func (c *parserController) AddPayment(m *tg.Message) {
 	result := defines.RegexAddPayment.FindAllStringSubmatch(m.Text, -1)
 
 	// Validate results
-	if len(result) != 1 || len(result[0]) < 3 || len(result[0]) > 4 {
+	if len(result) != 1 || len(result[0]) != 4 {
 		c.errorHandler(m, errors.New("invalid-syntax"))
 		return
 	}
