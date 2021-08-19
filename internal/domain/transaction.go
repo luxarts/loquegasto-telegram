@@ -11,3 +11,6 @@ type TransactionDTO struct {
 	Source      string    `json:"source,omitempty"`
 	Timestamp   time.Time `json:"created_at"`
 }
+type TotalDTO struct {
+	Total float64 `json:"total"`
+}

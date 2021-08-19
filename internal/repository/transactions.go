@@ -15,6 +15,7 @@ import (
 
 type TransactionsRepository interface {
 	Create(transactionDTO *domain.TransactionDTO, token string) error
+	GetTotal(token string) (*domain.TotalDTO, error)
 }
 
 type transactionsRepository struct {
@@ -50,4 +51,36 @@ func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, t
 	}
 
 	return nil
+}
+func (r *transactionsRepository) GetTotal(token string) (*domain.TotalDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsGetTotal))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	err = json.Unmarshal(resp.Body(), &body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(body.Error())
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var totalDTO domain.TotalDTO
+	err = json.Unmarshal(jsonBody, &totalDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &totalDTO, nil
 }

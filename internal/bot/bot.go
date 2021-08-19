@@ -51,6 +51,7 @@ func mapCommands() {
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
+	bot.Handle(defines.CommandTotal, cmdCtrl.Total)
 
 	// Parser
 	bot.Handle(tg.OnText, parserCtrl.Parse)
