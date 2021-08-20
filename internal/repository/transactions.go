@@ -15,6 +15,7 @@ import (
 
 type TransactionsRepository interface {
 	Create(transactionDTO *domain.TransactionDTO, token string) error
+	UpdateByMsgID(msgID string, transactionDTO *domain.TransactionDTO, token string) error
 	GetTotal(token string) (*domain.TotalDTO, error)
 }
 
@@ -83,4 +84,27 @@ func (r *transactionsRepository) GetTotal(token string) (*domain.TotalDTO, error
 	}
 
 	return &totalDTO, nil
+}
+func (r *transactionsRepository) UpdateByMsgID(msgID string, transactionDTO *domain.TransactionDTO, token string) error {
+	req := r.client.R()
+	req = req.SetBody(transactionDTO)
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	req = req.SetPathParam(defines.ParamMsgID, msgID)
+	resp, err := req.Put(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsPutURL))
+	if err != nil {
+		return err
+	}
+
+	var body jsend.Body
+	err = json.Unmarshal(resp.Body(), &body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return errors.New(body.Error())
+	}
+
+	return nil
 }

@@ -55,5 +55,5 @@ func mapCommands() {
 
 	// Parser
 	bot.Handle(tg.OnText, parserCtrl.Parse)
-	// TODO Agregar handler tg.OnEdit que actualice la información del pago
+	bot.Handle(tg.OnEdited, parserCtrl.ParseEdited)
 }
