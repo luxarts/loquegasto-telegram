@@ -15,8 +15,8 @@ const (
 		"/ayuda - _Muestra este mensaje_\n" +
 		"/ping - _Prueba tu conexión con el bot_\n" +
 		"/total - _Muestra el total gastado_"
-	MessageError         = "Ups! Parece que hubo un error. 😨"
-	MessageTotalResponse = "Llevás gastado *$%s*."
+	MessageError            = "Ups! Parece que hubo un error. 😨"
+	MessageConsumosResponse = "*%s:* $%.2f."
 
 	// AddPayment
 	MessagePaymentResponse           = "Listo, ya anoté tu pago de *%s* por *$%.2f*."

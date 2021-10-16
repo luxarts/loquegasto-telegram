@@ -64,13 +64,14 @@ func (c *parserController) GetTypeFromMessage(msg string) messageType {
 	return messageTypeUnknown
 }
 func (c *parserController) UpdatePayment(m *tg.Message) {
-	amount, description, source, err := c.getParametersFromMessage(&m.Text)
+	amount, description, _, err := c.getParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
-	err = c.txnSrv.UpdatePayment(m.Sender.ID, m.ID, amount, description, source, m.Unixtime)
+	walletID := 7
+	err = c.txnSrv.UpdatePayment(m.Sender.ID, m.ID, amount, description, walletID)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
@@ -91,22 +92,20 @@ func (c *parserController) UpdatePayment(m *tg.Message) {
 	}
 }
 func (c *parserController) AddPayment(m *tg.Message) {
-	amount, description, source, err := c.getParametersFromMessage(&m.Text)
+	amount, description, _, err := c.getParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
-	err = c.txnSrv.AddPayment(m.Sender.ID, m.ID, amount, description, source, m.Unixtime)
+	walletID := 7
+	err = c.txnSrv.AddPayment(m.Sender.ID, m.ID, amount, description, walletID, m.Unixtime)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
 	msg := fmt.Sprintf(defines.MessagePaymentResponse, description, amount)
-	if source != "" {
-		msg = fmt.Sprintf(defines.MessagePaymentResponseWithSource, description, amount, source)
-	}
 
 	// Respond to the user
 	_, err = c.bot.Send(m.Sender,
@@ -121,7 +120,7 @@ func (c *parserController) AddPayment(m *tg.Message) {
 	}
 }
 
-func (c *parserController) getParametersFromMessage(msg *string) (amount float64, description, source string, err error) {
+func (c *parserController) getParametersFromMessage(msg *string) (amount float64, description, walletName string, err error) {
 	// Search for amount and description
 	result := defines.RegexPayment.FindAllStringSubmatch(*msg, -1)
 
@@ -145,7 +144,7 @@ func (c *parserController) getParametersFromMessage(msg *string) (amount float64
 	description = result[0][2]
 
 	// Source will be empty if capture group 3 isn't set
-	source = result[0][3]
+	walletName = result[0][3]
 
 	return
 }

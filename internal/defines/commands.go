@@ -1,8 +1,8 @@
 package defines
 
 const (
-	CommandStart = "/start"
-	CommandHelp  = "/ayuda"
-	CommandPing  = "/ping"
-	CommandTotal = "/total"
+	CommandStart    = "/start"
+	CommandHelp     = "/ayuda"
+	CommandPing     = "/ping"
+	CommandConsumos = "/consumos"
 )
