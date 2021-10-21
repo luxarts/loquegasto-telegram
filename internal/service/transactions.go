@@ -31,6 +31,7 @@ func (srv *transactionsService) AddPayment(userID int, msgID int, amount float64
 	ts := time.Unix(timestamp, 0)
 	transactionDTO := domain.TransactionDTO{
 		MsgID:       msgID,
+		UserID:      userID,
 		Amount:      amount,
 		Description: description,
 		WalletID:    walletID,

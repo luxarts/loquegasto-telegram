@@ -29,6 +29,11 @@ func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService) Comm
 }
 
 func (c *commandsController) Start(m *tg.Message) {
+	// Create user
+
+	// Create default wallet
+
+	// Show onboarding message
 
 	// Response
 	_, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName), tg.ModeMarkdown)
@@ -56,10 +61,12 @@ func (c *commandsController) Consumos(m *tg.Message) {
 	}
 	fmt.Println(transacciones)
 
-	/*totalStr := strconv.FormatFloat(total, byte('f'), 2, 64)
-	totalStr = strings.Replace(totalStr, ".", ",", 1)
-	*/
-	_, err = c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageConsumosResponse, "Efectivo", 123.45), tg.ModeMarkdown)
+	var total int64
+	for _, txn := range *transacciones {
+		total += int64(txn.Amount * 100)
+	}
+
+	_, err = c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageConsumosResponse, "Efectivo", float64(total)/100), tg.ModeMarkdown)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
