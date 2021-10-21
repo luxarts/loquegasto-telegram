@@ -51,9 +51,9 @@ func mapCommands() {
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
-	bot.Handle(defines.CommandTotal, cmdCtrl.Total)
+	bot.Handle(defines.CommandConsumos, cmdCtrl.Consumos)
 
 	// Parser
 	bot.Handle(tg.OnText, parserCtrl.Parse)
-	// TODO Agregar handler tg.OnEdit que actualice la información del pago
+	bot.Handle(tg.OnEdited, parserCtrl.ParseEdited)
 }

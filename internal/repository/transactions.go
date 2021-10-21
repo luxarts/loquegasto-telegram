@@ -8,6 +8,7 @@ import (
 	"loquegasto-telegram/internal/domain"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/luxarts/jsend-go"
@@ -15,7 +16,8 @@ import (
 
 type TransactionsRepository interface {
 	Create(transactionDTO *domain.TransactionDTO, token string) error
-	GetTotal(token string) (*domain.TotalDTO, error)
+	GetAll(token string) (*[]domain.TransactionDTO, error)
+	UpdateByMsgID(msgID int, transactionDTO *domain.TransactionDTO, token string) error
 }
 
 type transactionsRepository struct {
@@ -35,7 +37,7 @@ func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, t
 	req = req.SetBody(transactionDTO)
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionPostURL))
+	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionAddURL))
 	if err != nil {
 		return err
 	}
@@ -52,11 +54,11 @@ func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, t
 
 	return nil
 }
-func (r *transactionsRepository) GetTotal(token string) (*domain.TotalDTO, error) {
+func (r *transactionsRepository) GetAll(token string) (*[]domain.TransactionDTO, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsGetTotal))
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsGetAllURL))
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +78,34 @@ func (r *transactionsRepository) GetTotal(token string) (*domain.TotalDTO, error
 	if err != nil {
 		return nil, err
 	}
-	var totalDTO domain.TotalDTO
-	err = json.Unmarshal(jsonBody, &totalDTO)
+	var response []domain.TransactionDTO
+	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &totalDTO, nil
+	return &response, nil
+}
+func (r *transactionsRepository) UpdateByMsgID(msgID int, transactionDTO *domain.TransactionDTO, token string) error {
+	req := r.client.R()
+	req = req.SetBody(transactionDTO)
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	req = req.SetPathParam(defines.ParamMsgID, strconv.Itoa(msgID))
+	resp, err := req.Put(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsUpdateURL))
+	if err != nil {
+		return err
+	}
+
+	var body jsend.Body
+	err = json.Unmarshal(resp.Body(), &body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return errors.New(body.Error())
+	}
+
+	return nil
 }
