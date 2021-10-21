@@ -17,19 +17,25 @@ type CommandsController interface {
 }
 
 type commandsController struct {
-	bot    *tg.Bot
-	txnSrv service.TransactionsService
+	bot     *tg.Bot
+	txnSrv  service.TransactionsService
+	userSrv service.UsersService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService) CommandsController {
 	return &commandsController{
-		bot:    bot,
-		txnSrv: txnSrv,
+		bot:     bot,
+		txnSrv:  txnSrv,
+		userSrv: usersSrv,
 	}
 }
 
 func (c *commandsController) Start(m *tg.Message) {
 	// Create user
+	if err := c.userSrv.Create(m.Sender.ID, m.Unixtime, m.Chat.ID); err != nil {
+		c.errorHandler(m, err)
+		return
+	}
 
 	// Create default wallet
 

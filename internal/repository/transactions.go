@@ -28,7 +28,7 @@ type transactionsRepository struct {
 func NewTransactionsRepository(client *resty.Client) TransactionsRepository {
 	return &transactionsRepository{
 		client:  client,
-		baseURL: os.Getenv(defines.EnvTransactionsBaseURL),
+		baseURL: os.Getenv(defines.EnvBackendBaseURL),
 	}
 }
 
