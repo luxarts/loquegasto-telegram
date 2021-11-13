@@ -40,13 +40,15 @@ func mapCommands() {
 	// Init repositories
 	txnRepo := repository.NewTransactionsRepository(rc)
 	usersRepo := repository.NewUsersRepository(rc)
+	walletsRepo := repository.NewWalletsRepository(rc)
 
 	// Init services
 	txnSrv := service.NewTransactionsService(txnRepo)
 	usersSrv := service.NewUsersService(usersRepo)
+	walletsSrv := service.NewWalletsService(walletsRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv)
+	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
 	parserCtrl := controller.NewParserController(bot, txnSrv)
 
 	// Commands

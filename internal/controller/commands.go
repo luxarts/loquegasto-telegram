@@ -17,16 +17,18 @@ type CommandsController interface {
 }
 
 type commandsController struct {
-	bot     *tg.Bot
-	txnSrv  service.TransactionsService
-	userSrv service.UsersService
+	bot       *tg.Bot
+	txnSrv    service.TransactionsService
+	userSrv   service.UsersService
+	walletSrv service.WalletsService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService) CommandsController {
 	return &commandsController{
-		bot:     bot,
-		txnSrv:  txnSrv,
-		userSrv: usersSrv,
+		bot:       bot,
+		txnSrv:    txnSrv,
+		userSrv:   usersSrv,
+		walletSrv: walletSrv,
 	}
 }
 
@@ -38,12 +40,13 @@ func (c *commandsController) Start(m *tg.Message) {
 	}
 
 	// Create default wallet
+	if err := c.walletSrv.Create(m.Sender.ID, "Efectivo", 0.0, m.Unixtime); err != nil {
+		c.errorHandler(m, err)
+		return
+	}
 
 	// Show onboarding message
-
-	// Response
-	_, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName), tg.ModeMarkdown)
-	if err != nil {
+	if _, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName), tg.ModeMarkdown); err != nil {
 		c.errorHandler(m, err)
 	}
 }
