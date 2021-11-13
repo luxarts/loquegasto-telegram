@@ -14,6 +14,7 @@ type CommandsController interface {
 	Help(m *tg.Message)
 	Ping(m *tg.Message)
 	Consumos(m *tg.Message)
+	Wallets(m *tg.Message)
 }
 
 type commandsController struct {
@@ -81,6 +82,24 @@ func (c *commandsController) Consumos(m *tg.Message) {
 		return
 	}
 }
+func (c *commandsController) Wallets(m *tg.Message) {
+	wallets, err := c.walletSrv.GetAll(m.Sender.ID)
+	if err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+
+	// Build response
+	response := fmt.Sprintf("*Billeteras:*")
+	for _, w := range *wallets {
+		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
+	}
+
+	if err := c.botRespond(m, response); err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+}
 
 // Utils
 func (c *commandsController) errorHandler(m *tg.Message, err error) {
@@ -89,4 +108,10 @@ func (c *commandsController) errorHandler(m *tg.Message, err error) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+func (c *commandsController) botRespond(m *tg.Message, msg string) error {
+	if _, err := c.bot.Send(m.Sender, msg, tg.ModeMarkdown); err != nil {
+		return err
+	}
+	return nil
 }

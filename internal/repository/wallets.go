@@ -15,6 +15,7 @@ import (
 
 type WalletsRepository interface {
 	Create(transactionDTO *domain.WalletDTO, token string) error
+	GetAll(token string) (*[]domain.WalletDTO, error)
 }
 
 type walletsRepository struct {
@@ -50,4 +51,31 @@ func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) erro
 	}
 
 	return nil
+}
+func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var response []domain.WalletDTO
+	err = json.Unmarshal(jsonBody, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }

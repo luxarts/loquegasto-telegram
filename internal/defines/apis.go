@@ -11,4 +11,5 @@ const (
 
 	// Wallets
 	APIWalletsCreateURL = "/wallet"
+	APIWalletsGetAllURL = "/wallets"
 )
