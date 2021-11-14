@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"loquegasto-telegram/internal/defines"
+	"loquegasto-telegram/internal/repository"
 	"loquegasto-telegram/internal/service"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 const (
-	messageTypePayment = iota
+	messageTypeTransaction = iota
 	messageTypeUnknown
 )
 
@@ -23,18 +24,20 @@ type ParserController interface {
 	Parse(m *tg.Message)
 	ParseEdited(m *tg.Message)
 	GetTypeFromMessage(msg string) messageType
-	AddPayment(m *tg.Message)
-	UpdatePayment(m *tg.Message)
+	AddTransaction(m *tg.Message)
+	UpdateTransaction(m *tg.Message)
 }
 type parserController struct {
-	bot    *tg.Bot
-	txnSrv service.TransactionsService
+	bot       *tg.Bot
+	txnSrv    service.TransactionsService
+	walletSrv service.WalletsService
 }
 
-func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService) ParserController {
+func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService, walletSrv service.WalletsService) ParserController {
 	return &parserController{
-		bot:    bot,
-		txnSrv: txnSrv,
+		bot:       bot,
+		txnSrv:    txnSrv,
+		walletSrv: walletSrv,
 	}
 }
 
@@ -42,42 +45,55 @@ func (c *parserController) Parse(m *tg.Message) {
 	t := c.GetTypeFromMessage(m.Text)
 
 	switch t {
-	case messageTypePayment:
-		c.AddPayment(m)
+	case messageTypeTransaction:
+		c.AddTransaction(m)
 	}
 }
 func (c *parserController) ParseEdited(m *tg.Message) {
 	t := c.GetTypeFromMessage(m.Text)
 
 	switch t {
-	case messageTypePayment:
-		c.UpdatePayment(m)
+	case messageTypeTransaction:
+		c.UpdateTransaction(m)
 	}
 }
 func (c *parserController) GetTypeFromMessage(msg string) messageType {
 	// Add payment check
-	r := defines.RegexPayment.FindStringIndex(msg)
+	r := defines.RegexTransaction.FindStringIndex(msg)
 	if r != nil {
-		return messageTypePayment
+		return messageTypeTransaction
 	}
 
 	return messageTypeUnknown
 }
-func (c *parserController) UpdatePayment(m *tg.Message) {
-	amount, description, _, err := c.getParametersFromMessage(&m.Text)
+func (c *parserController) UpdateTransaction(m *tg.Message) {
+	amount, description, walletName, err := c.getParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
-	walletID := 7
-	err = c.txnSrv.UpdatePayment(m.Sender.ID, m.ID, amount, description, walletID)
+	if walletName == "" {
+		walletName = "efectivo"
+	}
+
+	wallet, err := c.walletSrv.GetByName(walletName, m.Sender.ID)
+	if err == repository.ErrNotFound {
+		c.botRespond(m, defines.MessageErrorWalletNotFound)
+		return
+	}
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
-	msg := fmt.Sprintf(defines.MesssagePaymentUpdatedResponse)
+	err = c.txnSrv.UpdateTransaction(m.Sender.ID, m.ID, amount, description, wallet.ID)
+	if err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+
+	msg := fmt.Sprintf(defines.MesssageUpdatePaymentResponse)
 
 	// Respond to the user
 	_, err = c.bot.Send(m.Sender,
@@ -91,22 +107,35 @@ func (c *parserController) UpdatePayment(m *tg.Message) {
 		c.errorHandler(m, err)
 	}
 }
-func (c *parserController) AddPayment(m *tg.Message) {
-	amount, description, _, err := c.getParametersFromMessage(&m.Text)
+func (c *parserController) AddTransaction(m *tg.Message) {
+	amount, description, walletName, err := c.getParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
-
-	walletID := 7
-	err = c.txnSrv.AddPayment(m.Sender.ID, m.ID, amount, description, walletID, m.Unixtime)
+	if walletName == "" {
+		walletName = "efectivo"
+	}
+	wallet, err := c.walletSrv.GetByName(walletName, m.Sender.ID)
+	if err == repository.ErrNotFound {
+		c.botRespond(m, defines.MessageErrorWalletNotFound)
+		return
+	}
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
-
-	msg := fmt.Sprintf(defines.MessagePaymentResponse, description, amount)
-
+	err = c.txnSrv.AddTransaction(m.Sender.ID, m.ID, amount, description, wallet.ID, m.Unixtime)
+	if err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+	var msg string
+	if amount > 0 {
+		msg = fmt.Sprintf(defines.MessageAddPaymentResponseWithWallet, description, amount, walletName)
+	} else {
+		msg = fmt.Sprintf(defines.MessageAddMoneyResponse, description, amount, walletName)
+	}
 	// Respond to the user
 	_, err = c.bot.Send(m.Sender,
 		msg,
@@ -122,7 +151,7 @@ func (c *parserController) AddPayment(m *tg.Message) {
 
 func (c *parserController) getParametersFromMessage(msg *string) (amount float64, description, walletName string, err error) {
 	// Search for amount and description
-	result := defines.RegexPayment.FindAllStringSubmatch(*msg, -1)
+	result := defines.RegexTransaction.FindAllStringSubmatch(*msg, -1)
 
 	// Validate results
 	if len(result) != 1 || len(result[0]) != 4 {
@@ -143,7 +172,7 @@ func (c *parserController) getParametersFromMessage(msg *string) (amount float64
 	// Description capture group 2
 	description = result[0][2]
 
-	// Source will be empty if capture group 3 isn't set
+	// Wallet will be empty if capture group 3 isn't set
 	walletName = result[0][3]
 
 	return
@@ -154,4 +183,10 @@ func (c *parserController) errorHandler(m *tg.Message, err error) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+func (c *parserController) botRespond(m *tg.Message, msg string) error {
+	if _, err := c.bot.Send(m.Sender, msg, tg.ModeMarkdown); err != nil {
+		return err
+	}
+	return nil
 }

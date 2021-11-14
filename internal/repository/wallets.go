@@ -13,9 +13,12 @@ import (
 	"github.com/luxarts/jsend-go"
 )
 
+var ErrNotFound = errors.New("not found")
+
 type WalletsRepository interface {
 	Create(transactionDTO *domain.WalletDTO, token string) error
 	GetAll(token string) (*[]domain.WalletDTO, error)
+	GetByName(name string, token string) (*domain.WalletDTO, error)
 }
 
 type walletsRepository struct {
@@ -78,4 +81,39 @@ func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
 	}
 
 	return &response, nil
+}
+func (r *walletsRepository) GetByName(name string, token string) (*domain.WalletDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	req = req.SetQueryParam(defines.ParamName, name)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(body.Error())
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var response []domain.WalletDTO
+	err = json.Unmarshal(jsonBody, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response[0], nil
 }

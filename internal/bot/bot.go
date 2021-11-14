@@ -49,13 +49,12 @@ func mapCommands() {
 
 	// Init controllers
 	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
-	parserCtrl := controller.NewParserController(bot, txnSrv)
+	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv)
 
 	// Commands
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandWallets, cmdCtrl.Wallets)
-	bot.Handle(defines.CommandConsumos, cmdCtrl.Consumos)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 
 	// Parser
