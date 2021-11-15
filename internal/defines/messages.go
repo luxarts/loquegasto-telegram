@@ -30,4 +30,6 @@ const (
 	MessageAddMoneyResponse             = "Listo, ya anoté ingreso de dinero de *%s* por *$%.2f* en *%s*."
 	// UpdateTransaction
 	MesssageUpdatePaymentResponse = "Listo, ya modifiqué la transacción."
+	// CreateWallet
+	MessageCreateWallet = "Tu billetera *%s* está lista!"
 )

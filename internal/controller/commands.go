@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
+	"strconv"
+	"strings"
 
 	tg "gopkg.in/tucnak/telebot.v2"
 )
@@ -14,6 +17,7 @@ type CommandsController interface {
 	Help(m *tg.Message)
 	Ping(m *tg.Message)
 	Wallets(m *tg.Message)
+	CreateWallet(m *tg.Message)
 }
 
 type commandsController struct {
@@ -80,8 +84,50 @@ func (c *commandsController) Wallets(m *tg.Message) {
 		return
 	}
 }
+func (c *commandsController) CreateWallet(m *tg.Message) {
+	name, balance, err := c.getWalletNameAndBalance(m.Payload)
+	if err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+	err = c.walletSrv.Create(m.Sender.ID, name, balance, m.Unixtime)
+	if err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+
+	response := fmt.Sprintf(defines.MessageCreateWallet, name)
+	if err := c.botRespond(m, response); err != nil {
+		c.errorHandler(m, err)
+		return
+	}
+}
 
 // Utils
+func (c *commandsController) getWalletNameAndBalance(text string) (name string, balance float64, err error) {
+	result := defines.RegexCreateWallet.FindAllStringSubmatch(text, -1)
+
+	// Validate results
+	if len(result) != 1 {
+		err = errors.New("invalid syntax")
+		return
+	}
+
+	// Name capture group 1
+	name = result[0][1]
+
+	// Balance capture group 2
+	balanceStr := result[0][2]
+
+	// Parse decimal as dot for internal usage and colon for response
+	balanceStr = strings.Replace(balanceStr, ",", ".", 1)
+	balance, err = strconv.ParseFloat(balanceStr, 64)
+	if err != nil {
+		return
+	}
+
+	return
+}
 func (c *commandsController) errorHandler(m *tg.Message, err error) {
 	log.Println(err)
 	_, err = c.bot.Send(m.Sender, defines.MessageError, tg.ModeMarkdown)

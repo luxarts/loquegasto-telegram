@@ -1,8 +1,9 @@
 package defines
 
 const (
-	CommandStart   = "/start"
-	CommandHelp    = "/ayuda"
-	CommandPing    = "/ping"
-	CommandWallets = "/billeteras"
+	CommandStart        = "/start"
+	CommandHelp         = "/ayuda"
+	CommandPing         = "/ping"
+	CommandWallets      = "/billeteras"
+	CommandCreateWallet = "/billetera"
 )
