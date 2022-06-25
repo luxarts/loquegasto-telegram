@@ -3,12 +3,11 @@ package service
 import (
 	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/repository"
-	"loquegasto-telegram/internal/utils/jwt"
 	"time"
 )
 
 type UsersService interface {
-	Create(userID int, timestamp int64, chatID int64) error
+	Create(userID int, timestamp *time.Time, chatID int64, token string) error
 }
 type usersService struct {
 	repo repository.UsersRepository
@@ -19,15 +18,11 @@ func NewUsersService(repo repository.UsersRepository) UsersService {
 		repo: repo,
 	}
 }
-func (s *usersService) Create(userID int, timestamp int64, chatID int64) error {
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: userID,
-	})
-	ts := time.Unix(timestamp, 0)
+func (s *usersService) Create(userID int, timestamp *time.Time, chatID int64, token string) error {
 	userDTO := domain.UserDTO{
 		ID:        userID,
-		CreatedAt: &ts,
-		ChatID:    chatID,
+		CreatedAt: timestamp,
+		ChatID:    int(chatID),
 	}
 	return s.repo.Create(&userDTO, token)
 }

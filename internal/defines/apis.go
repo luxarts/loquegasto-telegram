@@ -2,14 +2,14 @@ package defines
 
 const (
 	// Transactions
-	APITransactionAddURL     = "/transaction"
+	APITransactionAddURL     = "/transactions"
 	APITransactionsGetAllURL = "/transactions"
 	APITransactionsUpdateURL = "/transactions/{" + ParamMsgID + "}"
 
 	// Users
-	APIUsersCreateURL = "/user"
+	APIUsersCreateURL = "/users"
 
 	// Wallets
-	APIWalletsCreateURL = "/wallet"
+	APIWalletsCreateURL = "/wallets"
 	APIWalletsGetAllURL = "/wallets"
 )

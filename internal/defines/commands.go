@@ -5,5 +5,5 @@ const (
 	CommandHelp         = "/ayuda"
 	CommandPing         = "/ping"
 	CommandWallets      = "/billeteras"
-	CommandCreateWallet = "/billetera"
+	CommandCreateWallet = "/crearbilletera"
 )
