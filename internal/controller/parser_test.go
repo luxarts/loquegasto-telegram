@@ -15,7 +15,7 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignNoWallet(t *test
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignNoWallet(t *testing.T) {
 	// Given
@@ -26,7 +26,7 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignNoWallet(t *tes
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignNoWallet(t *testing.T) {
 	// Given
@@ -37,7 +37,7 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignNoWallet(t *t
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeNoDecimalSignNoWallet(t *testing.T) {
 	// Given
@@ -48,7 +48,7 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalSignNoWallet(t *testin
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeDotDecimalSignNoWallet(t *testing.T) {
 	// Given
@@ -59,7 +59,7 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalSignNoWallet(t *testi
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignNoWallet(t *testing.T) {
 	// Given
@@ -70,7 +70,7 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignNoWallet(t *tes
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignWallet(t *testing.T) {
 	// Given
@@ -81,7 +81,7 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignWallet(t *testin
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignWallet(t *testing.T) {
 	// Given
@@ -92,7 +92,7 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignWallet(t *testi
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignWallet(t *testing.T) {
 	// Given
@@ -103,7 +103,7 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignWallet(t *tes
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeNoDecimalSignWallet(t *testing.T) {
 	// Given
@@ -114,7 +114,7 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalSignWallet(t *testing.
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeDotDecimalSignWallet(t *testing.T) {
 	// Given
@@ -125,7 +125,7 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalSignWallet(t *testing
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignWallet(t *testing.T) {
 	// Given
@@ -136,7 +136,7 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignWallet(t *testi
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalNoSignNoWallet(t *testing.T) {
 	// Given
@@ -147,7 +147,7 @@ func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalNoSignNoWallet
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalSignNoWallet(t *testing.T) {
 	// Given
@@ -158,7 +158,7 @@ func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalSignNoWallet(t
 	msgType := ctrl.GetTypeFromMessage(msg)
 
 	// Then
-	require.EqualValues(t, messageTypeTransaction, msgType)
+	require.EqualValues(t, messageTypeAddTransaction, msgType)
 }
 func TestParserController_GetTypeFromMessage_Unknown(t *testing.T) {
 	// Given

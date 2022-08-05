@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	messageTypeTransaction = iota
+	messageTypeAddTransaction = iota
 	messageTypeUnknown
 )
 
@@ -45,7 +45,7 @@ func (c *parserController) Parse(m *tg.Message) {
 	t := c.GetTypeFromMessage(m.Text)
 
 	switch t {
-	case messageTypeTransaction:
+	case messageTypeAddTransaction:
 		c.AddTransaction(m)
 	}
 }
@@ -53,15 +53,15 @@ func (c *parserController) ParseEdited(m *tg.Message) {
 	t := c.GetTypeFromMessage(m.Text)
 
 	switch t {
-	case messageTypeTransaction:
+	case messageTypeAddTransaction:
 		c.UpdateTransaction(m)
 	}
 }
 func (c *parserController) GetTypeFromMessage(msg string) messageType {
-	// Add payment check
+	// Add transaction check
 	r := defines.RegexTransaction.FindStringIndex(msg)
 	if r != nil {
-		return messageTypeTransaction
+		return messageTypeAddTransaction
 	}
 
 	return messageTypeUnknown
