@@ -3,11 +3,14 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"github.com/luxarts/jsend-go"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
+	"loquegasto-telegram/internal/utils/jwt"
 	"strconv"
 	"strings"
+	"time"
 
 	tg "gopkg.in/tucnak/telebot.v2"
 )
@@ -37,14 +40,19 @@ func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, user
 }
 
 func (c *commandsController) Start(m *tg.Message) {
+	timestamp := time.Unix(m.Unixtime, 0)
+	token := jwt.GenerateToken(nil, &jwt.Payload{
+		Subject: m.Sender.ID,
+	})
+
 	// Create user
-	if err := c.userSrv.Create(m.Sender.ID, m.Unixtime, m.Chat.ID); err != nil {
+	if err := c.userSrv.Create(m.Sender.ID, &timestamp, m.Chat.ID, token); err != nil {
 		c.errorHandler(m, err)
 		return
 	}
 
 	// Create default wallet
-	if err := c.walletSrv.Create(m.Sender.ID, "Efectivo", 0.0, m.Unixtime); err != nil {
+	if _, err := c.walletSrv.Create(m.Sender.ID, "Efectivo", 0.0, &timestamp, token); err != nil {
 		c.errorHandler(m, err)
 		return
 	}
@@ -85,18 +93,24 @@ func (c *commandsController) Wallets(m *tg.Message) {
 	}
 }
 func (c *commandsController) CreateWallet(m *tg.Message) {
+	timestamp := time.Unix(m.Unixtime, 0)
+	token := jwt.GenerateToken(nil, &jwt.Payload{
+		Subject: m.Sender.ID,
+	})
+
 	name, balance, err := c.getWalletNameAndBalance(m.Payload)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
 	}
-	err = c.walletSrv.Create(m.Sender.ID, name, balance, m.Unixtime)
-	if err != nil {
-		c.errorHandler(m, err)
+
+	wallet, err := c.walletSrv.Create(m.Sender.ID, name, balance, &timestamp, token)
+	if err, isError := err.(*jsend.Body); isError && err != nil {
+		c.errorHandlerResponse(m, err)
 		return
 	}
 
-	response := fmt.Sprintf(defines.MessageCreateWallet, name)
+	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
 	if err := c.botRespond(m, response); err != nil {
 		c.errorHandler(m, err)
 		return
@@ -131,6 +145,13 @@ func (c *commandsController) getWalletNameAndBalance(text string) (name string, 
 func (c *commandsController) errorHandler(m *tg.Message, err error) {
 	log.Println(err)
 	_, err = c.bot.Send(m.Sender, defines.MessageError, tg.ModeMarkdown)
+	if err != nil {
+		log.Println(err)
+	}
+}
+func (c *commandsController) errorHandlerResponse(m *tg.Message, err error) {
+	log.Println(err)
+	_, err = c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}

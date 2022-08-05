@@ -16,7 +16,7 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type WalletsRepository interface {
-	Create(transactionDTO *domain.WalletDTO, token string) error
+	Create(transactionDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error)
 	GetAll(token string) (*[]domain.WalletDTO, error)
 	GetByName(name string, token string) (*domain.WalletDTO, error)
 }
@@ -33,27 +33,27 @@ func NewWalletsRepository(client *resty.Client) WalletsRepository {
 	}
 }
 
-func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) error {
+func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error) {
 	req := r.client.R()
 	req = req.SetBody(userDTO)
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
 	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsCreateURL))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var body jsend.Body
 	err = json.Unmarshal(resp.Body(), &body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
-		return errors.New(body.Error())
+		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
 	}
 
-	return nil
+	return body.Data.(*domain.WalletDTO), nil
 }
 func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
 	req := r.client.R()
