@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	tg "gopkg.in/tucnak/telebot.v2"
+	tg "gopkg.in/telebot.v3"
 )
 
 var bot *tg.Bot

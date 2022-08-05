@@ -7,5 +7,5 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/luxarts/jsend-go v1.0.2
 	github.com/stretchr/testify v1.7.0
-	gopkg.in/tucnak/telebot.v2 v2.4.0
+	gopkg.in/telebot.v3 v3.0.0
 )
