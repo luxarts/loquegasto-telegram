@@ -46,10 +46,11 @@ func mapCommands() {
 	txnSrv := service.NewTransactionsService(txnRepo)
 	usersSrv := service.NewUsersService(usersRepo)
 	walletsSrv := service.NewWalletsService(walletsRepo)
+	sheetsSrv := service.NewSheetsService()
 
 	// Init controllers
 	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
-	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv)
+	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv, sheetsSrv)
 	grpCtrl := controller.NewGroupsController(bot)
 
 	// Commands
