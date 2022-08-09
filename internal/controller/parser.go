@@ -26,6 +26,7 @@ type ParserController interface {
 	GetTypeFromMessage(msg string) messageType
 	AddTransaction(m *tg.Message)
 	UpdateTransaction(m *tg.Message)
+	GetParametersFromMessage(msg *string) (amount float64, description, walletName string, err error)
 }
 type parserController struct {
 	bot       *tg.Bot
@@ -67,7 +68,7 @@ func (c *parserController) GetTypeFromMessage(msg string) messageType {
 	return messageTypeUnknown
 }
 func (c *parserController) UpdateTransaction(m *tg.Message) {
-	amount, description, walletName, err := c.getParametersFromMessage(&m.Text)
+	amount, description, walletName, err := c.GetParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
@@ -108,7 +109,7 @@ func (c *parserController) UpdateTransaction(m *tg.Message) {
 	}
 }
 func (c *parserController) AddTransaction(m *tg.Message) {
-	amount, description, walletName, err := c.getParametersFromMessage(&m.Text)
+	amount, description, walletName, err := c.GetParametersFromMessage(&m.Text)
 	if err != nil {
 		c.errorHandler(m, err)
 		return
@@ -149,7 +150,7 @@ func (c *parserController) AddTransaction(m *tg.Message) {
 	}
 }
 
-func (c *parserController) getParametersFromMessage(msg *string) (amount float64, description, walletName string, err error) {
+func (c *parserController) GetParametersFromMessage(msg *string) (amount float64, description, walletName string, err error) {
 	// Search for amount and description
 	result := defines.RegexTransaction.FindAllStringSubmatch(*msg, -1)
 

@@ -6,6 +6,7 @@ import (
 	"github.com/luxarts/jsend-go"
 	"log"
 	"loquegasto-telegram/internal/defines"
+	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/service"
 	"loquegasto-telegram/internal/utils/jwt"
 	"strconv"
@@ -19,8 +20,9 @@ type CommandsController interface {
 	Start(m *tg.Message)
 	Help(m *tg.Message)
 	Ping(m *tg.Message)
-	Wallets(m *tg.Message)
+	GetWallets(m *tg.Message)
 	CreateWallet(m *tg.Message)
+	AddTransaction(m *tg.Message)
 }
 
 type commandsController struct {
@@ -40,6 +42,13 @@ func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, user
 }
 
 func (c *commandsController) Start(m *tg.Message) {
+	if m.Chat.Type == tg.ChatPrivate {
+		c.startPrivate(m)
+	} else if m.Chat.Type == tg.ChatGroup {
+		c.startGroup(m)
+	}
+}
+func (c *commandsController) startPrivate(m *tg.Message) {
 	timestamp := time.Unix(m.Unixtime, 0)
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: m.Sender.ID,
@@ -62,6 +71,11 @@ func (c *commandsController) Start(m *tg.Message) {
 		c.errorHandler(m, err)
 	}
 }
+func (c *commandsController) startGroup(m *tg.Message) {
+	// Show onboarding message
+	c.botRespond(m, fmt.Sprintf("@%s registrado.", m.Sender.Username))
+}
+
 func (c *commandsController) Help(m *tg.Message) {
 	_, err := c.bot.Send(m.Sender, defines.MessageHelp, tg.ModeMarkdown)
 	if err != nil {
@@ -74,7 +88,7 @@ func (c *commandsController) Ping(m *tg.Message) {
 		c.errorHandler(m, err)
 	}
 }
-func (c *commandsController) Wallets(m *tg.Message) {
+func (c *commandsController) GetWallets(m *tg.Message) {
 	wallets, err := c.walletSrv.GetAll(m.Sender.ID)
 	if err != nil {
 		c.errorHandler(m, err)
@@ -87,10 +101,7 @@ func (c *commandsController) Wallets(m *tg.Message) {
 		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
 	}
 
-	if err := c.botRespond(m, response); err != nil {
-		c.errorHandler(m, err)
-		return
-	}
+	c.botRespond(m, response)
 }
 func (c *commandsController) CreateWallet(m *tg.Message) {
 	timestamp := time.Unix(m.Unixtime, 0)
@@ -111,10 +122,17 @@ func (c *commandsController) CreateWallet(m *tg.Message) {
 	}
 
 	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
-	if err := c.botRespond(m, response); err != nil {
-		c.errorHandler(m, err)
+	c.botRespond(m, response)
+}
+func (c *commandsController) AddTransaction(m *tg.Message) {
+	payload := domain.CommandTransactionPayload{}
+	if err := payload.Parse(m.Payload); err != nil {
+		c.errorHandlerResponse(m, err)
 		return
 	}
+
+	response := fmt.Sprintf(defines.MessageAddPaymentResponse, payload.Description, payload.Amount)
+	c.botRespond(m, response)
 }
 
 // Utils
@@ -144,21 +162,20 @@ func (c *commandsController) getWalletNameAndBalance(text string) (name string, 
 }
 func (c *commandsController) errorHandler(m *tg.Message, err error) {
 	log.Println(err)
-	_, err = c.bot.Send(m.Sender, defines.MessageError, tg.ModeMarkdown)
+	_, err = c.bot.Send(m.Chat, defines.MessageError, tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
 func (c *commandsController) errorHandlerResponse(m *tg.Message, err error) {
 	log.Println(err)
-	_, err = c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
+	_, err = c.bot.Send(m.Chat, fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
-func (c *commandsController) botRespond(m *tg.Message, msg string) error {
-	if _, err := c.bot.Send(m.Sender, msg, tg.ModeMarkdown); err != nil {
-		return err
+func (c *commandsController) botRespond(m *tg.Message, msg string) {
+	if _, err := c.bot.Send(m.Chat, msg, tg.ModeMarkdown); err != nil {
+		c.errorHandler(m, err)
 	}
-	return nil
 }
