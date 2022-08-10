@@ -170,12 +170,14 @@ func (c *parserController) AddTransactionGroup(m *tg.Message) {
 		c.errorHandler(m, err)
 	}
 
-	err = c.sheetsSrv.AddRow(time.Unix(m.Unixtime, 0), description, amount, payerName)
+	resp, err := c.sheetsSrv.AddRow(time.Unix(m.Unixtime, 0), description, amount, payerName)
 	if err != nil {
 		c.errorHandler(m, err)
 	}
+	respRange := strings.Replace(resp.Updates.UpdatedRange, "Gastos!", "", 1)
+	msg := "Anotado -> [link](https://docs.google.com/spreadsheets/d/" + c.sheetsSrv.GetSpreadsheetID() + "/edit#gid=0&range=" + respRange + ")"
+	_, err = c.bot.Send(m.Chat, msg, tg.ModeMarkdown, tg.NoPreview)
 
-	err = c.botRespond(m, "Anotado.")
 	if err != nil {
 		c.errorHandler(m, err)
 	}

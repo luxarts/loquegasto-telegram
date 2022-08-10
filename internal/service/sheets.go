@@ -17,7 +17,8 @@ import (
 )
 
 type SheetsService interface {
-	AddRow(date time.Time, description string, amount float64, payerName string) error
+	AddRow(date time.Time, description string, amount float64, payerName string) (*sheets.AppendValuesResponse, error)
+	GetSpreadsheetID() string
 }
 
 type sheetsService struct {
@@ -47,7 +48,7 @@ func NewSheetsService() SheetsService {
 	return &srv
 }
 
-func (s *sheetsService) AddRow(date time.Time, description string, amount float64, payerName string) error {
+func (s *sheetsService) AddRow(date time.Time, description string, amount float64, payerName string) (*sheets.AppendValuesResponse, error) {
 	writeRange := "Gastos!A2:D"
 	var values [][]interface{}
 	values = append(values, []interface{}{date.Format("02/01/2006"), description, amount, payerName})
@@ -59,10 +60,14 @@ func (s *sheetsService) AddRow(date time.Time, description string, amount float6
 
 	resp, err := s.repo.Spreadsheets.Values.Append(s.spreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err != nil || resp.HTTPStatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("failed to add to Google Sheet (%d - %s)", resp.HTTPStatusCode, err.Error()))
+		return nil, errors.New(fmt.Sprintf("failed to add to Google Sheet (%d - %s)", resp.HTTPStatusCode, err.Error()))
 	}
 
-	return nil
+	return resp, nil
+}
+
+func (s *sheetsService) GetSpreadsheetID() string {
+	return s.spreadsheetID
 }
 
 // Retrieve a token, saves the token, then returns the generated client.
