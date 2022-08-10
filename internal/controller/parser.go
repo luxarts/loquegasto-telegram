@@ -234,7 +234,13 @@ func (c *parserController) GetAddTransactionData(m *tg.Message) (amount float64,
 		return
 	}
 
-	payerName = m.Entities[0].User.FirstName + " " + m.Entities[0].User.LastName
+	if m.Entities[0].Type == "mention" && m.Entities[0].User == nil {
+		// Get username from message
+		payerName = m.Text[m.Entities[0].Offset+1:]
+	} else {
+		// Get name from user
+		payerName = m.Entities[0].User.FirstName + " " + m.Entities[0].User.LastName
+	}
 
 	return
 }
