@@ -13,8 +13,12 @@ import (
 	"github.com/luxarts/jsend-go"
 )
 
+var ErrNotFound = errors.New("not found")
+
 type WalletsRepository interface {
-	Create(transactionDTO *domain.WalletDTO, token string) error
+	Create(transactionDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error)
+	GetAll(token string) (*[]domain.WalletDTO, error)
+	GetByName(name string, token string) (*domain.WalletDTO, error)
 }
 
 type walletsRepository struct {
@@ -29,25 +33,87 @@ func NewWalletsRepository(client *resty.Client) WalletsRepository {
 	}
 }
 
-func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) error {
+func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error) {
 	req := r.client.R()
 	req = req.SetBody(userDTO)
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
 	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsCreateURL))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var body jsend.Body
 	err = json.Unmarshal(resp.Body(), &body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
-		return errors.New(body.Error())
+		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
 	}
 
-	return nil
+	return body.Data.(*domain.WalletDTO), nil
+}
+func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var response []domain.WalletDTO
+	err = json.Unmarshal(jsonBody, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+func (r *walletsRepository) GetByName(name string, token string) (*domain.WalletDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	req = req.SetQueryParam(defines.ParamName, name)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(body.Error())
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var response []domain.WalletDTO
+	err = json.Unmarshal(jsonBody, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response[0], nil
 }

@@ -3,5 +3,7 @@ package defines
 import "regexp"
 
 var (
-	RegexPayment = regexp.MustCompile("^\\$*(\\d+(?:(?:\\.|,)\\d+)*) (.+[^()])(?: \\((.+[^()])\\))*$")
+	RegexTransaction      = regexp.MustCompile("^\\$*(\\-*\\d+(?:(?:\\.|,)\\d+)*) (.+[^()])(?: \\((.+[^()])\\))*$")
+	RegexTransactionGroup = regexp.MustCompile("^\\$?(\\d+(?:\\.|,)?\\d+)(.+) (?:.+)$")
+	RegexCreateWallet     = regexp.MustCompile("^(.+)\\s\\$*(\\-*\\d+(?:(?:\\.|,)\\d+)*)$")
 )
