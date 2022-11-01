@@ -52,28 +52,19 @@ func (c *commandsController) Start(ctx tg.Context) error {
 	return nil
 }
 func (c *commandsController) startPrivate(ctx tg.Context) error {
-	timestamp := time.Unix(ctx.Message().Unixtime, 0)
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: ctx.Sender().ID,
-	})
-
-	// Create user
-	if err := c.userSrv.Create(ctx.Sender().ID, &timestamp, ctx.Chat().ID, token); err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
-	// Create default wallet
-	if _, err := c.walletSrv.Create(ctx.Sender().ID, "Efectivo", 0.0, &timestamp, token); err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
 	loginURL := c.oAuthSrv.GetLoginURL(ctx.Sender().ID)
 
+	// Create login button
+	selector := c.bot.NewMarkup()
+	urlBtn := selector.URL("Iniciar sesión con Google", loginURL)
+	selector.Inline(
+		selector.Row(urlBtn),
+	)
+
 	// Show onboarding message
-	if _, err := c.bot.Send(ctx.Message().Sender, fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName, loginURL), tg.ModeMarkdown); err != nil {
+	if err := ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown, selector); err != nil {
 		c.errorHandler(ctx, err)
+		return err
 	}
 
 	return nil
