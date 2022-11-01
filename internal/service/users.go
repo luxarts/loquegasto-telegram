@@ -7,7 +7,7 @@ import (
 )
 
 type UsersService interface {
-	Create(userID int, timestamp *time.Time, chatID int64, token string) error
+	Create(userID int64, timestamp *time.Time, chatID int64, token string) error
 }
 type usersService struct {
 	repo repository.UsersRepository
@@ -18,7 +18,7 @@ func NewUsersService(repo repository.UsersRepository) UsersService {
 		repo: repo,
 	}
 }
-func (s *usersService) Create(userID int, timestamp *time.Time, chatID int64, token string) error {
+func (s *usersService) Create(userID int64, timestamp *time.Time, chatID int64, token string) error {
 	userDTO := domain.UserDTO{
 		ID:        userID,
 		CreatedAt: timestamp,

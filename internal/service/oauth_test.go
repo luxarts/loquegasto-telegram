@@ -33,7 +33,7 @@ func (s *OAuthServiceTestSuite) SetupSuite() {
 func (s *OAuthServiceTestSuite) TestGetLoginURL() {
 	// Given
 	expected := "https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=googleClientID&redirect_uri=https%3A%2F%2Flocalhost%3A8080%2Fauth%3Fuser_id%3D1234&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets&state=state-token"
-	userID := 1234
+	var userID int64 = 1234
 
 	srv := NewOAuthService()
 

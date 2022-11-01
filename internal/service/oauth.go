@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"log"
@@ -9,10 +8,11 @@ import (
 	"loquegasto-telegram/internal/domain"
 	"net/url"
 	"os"
+	"strconv"
 )
 
 type OAuthService interface {
-	GetLoginURL(userID int) string
+	GetLoginURL(userID int64) string
 }
 
 type oAuthService struct {
@@ -31,12 +31,11 @@ func NewOAuthService() OAuthService {
 	return &s
 }
 
-func (srv *oAuthService) GetLoginURL(userID int) string {
+func (srv *oAuthService) GetLoginURL(userID int64) string {
 	redirectURI := url.URL{
-		Scheme:   "https",
-		Host:     os.Getenv(defines.EnvBackendBaseURL),
-		Path:     defines.APIAuthURL,
-		RawQuery: fmt.Sprintf("%s=%d", defines.QueryParamUserID, userID),
+		Scheme: "http",
+		Host:   os.Getenv(defines.EnvBackendBaseURL),
+		Path:   defines.APIAuthURL + strconv.FormatInt(userID, 10),
 	}
 
 	credsBytes := srv.creds.AddRedirectURI(redirectURI.String()).Bytes()

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	tg "gopkg.in/tucnak/telebot.v2"
+	tg "gopkg.in/telebot.v3"
 )
 
 const (
@@ -23,8 +23,8 @@ const (
 type messageType int
 
 type ParserController interface {
-	Parse(m *tg.Message)
-	ParseEdited(m *tg.Message)
+	Parse(ctx tg.Context) error
+	ParseEdited(ctx tg.Context) error
 	GetTypeFromMessage(m *tg.Message) messageType
 	AddTransaction(m *tg.Message)
 	AddTransactionGroup(m *tg.Message)
@@ -47,23 +47,25 @@ func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService, wallet
 	}
 }
 
-func (c *parserController) Parse(m *tg.Message) {
-	t := c.GetTypeFromMessage(m)
+func (c *parserController) Parse(ctx tg.Context) error {
+	t := c.GetTypeFromMessage(ctx.Message())
 
 	switch t {
 	case messageTypeTransaction:
-		c.AddTransaction(m)
+		c.AddTransaction(ctx.Message())
 	case messageTypeTransactionGroup:
-		c.AddTransactionGroup(m)
+		c.AddTransactionGroup(ctx.Message())
 	}
+	return nil
 }
-func (c *parserController) ParseEdited(m *tg.Message) {
-	t := c.GetTypeFromMessage(m)
+func (c *parserController) ParseEdited(ctx tg.Context) error {
+	t := c.GetTypeFromMessage(ctx.Message())
 
 	switch t {
 	case messageTypeTransaction:
-		c.UpdateTransaction(m)
+		c.UpdateTransaction(ctx.Message())
 	}
+	return nil
 }
 func (c *parserController) GetTypeFromMessage(m *tg.Message) messageType {
 	// Add payment check

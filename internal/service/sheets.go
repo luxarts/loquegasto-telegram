@@ -30,7 +30,7 @@ func NewSheetsService() SheetsService {
 	var srv sheetsService
 
 	ctx := context.Background()
-	b := os.Getenv("")
+	b := os.Getenv("SHEETS_CONFIG")
 
 	config, err := google.ConfigFromJSON([]byte(b), "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
