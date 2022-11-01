@@ -30,14 +30,16 @@ type commandsController struct {
 	txnSrv    service.TransactionsService
 	userSrv   service.UsersService
 	walletSrv service.WalletsService
+	oAuthSrv  service.OAuthService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService, oAuthSrv service.OAuthService) CommandsController {
 	return &commandsController{
 		bot:       bot,
 		txnSrv:    txnSrv,
 		userSrv:   usersSrv,
 		walletSrv: walletSrv,
+		oAuthSrv:  oAuthSrv,
 	}
 }
 
@@ -66,8 +68,10 @@ func (c *commandsController) startPrivate(m *tg.Message) {
 		return
 	}
 
+	loginURL := c.oAuthSrv.GetLoginURL(m.Sender.ID)
+
 	// Show onboarding message
-	if _, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName), tg.ModeMarkdown); err != nil {
+	if _, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName, loginURL), tg.ModeMarkdown); err != nil {
 		c.errorHandler(m, err)
 	}
 }

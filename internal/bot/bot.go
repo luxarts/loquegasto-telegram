@@ -47,9 +47,10 @@ func mapCommands() {
 	usersSrv := service.NewUsersService(usersRepo)
 	walletsSrv := service.NewWalletsService(walletsRepo)
 	sheetsSrv := service.NewSheetsService()
+	oAuthSrv := service.NewOAuthService()
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
+	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv, oAuthSrv)
 	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv, sheetsSrv)
 	grpCtrl := controller.NewGroupsController(bot)
 

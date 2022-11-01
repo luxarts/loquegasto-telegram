@@ -30,7 +30,7 @@ func NewSheetsService() SheetsService {
 	var srv sheetsService
 
 	ctx := context.Background()
-	b := os.Getenv(defines.EnvSheetsConfig)
+	b := os.Getenv("")
 
 	config, err := google.ConfigFromJSON([]byte(b), "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
@@ -75,7 +75,9 @@ func getClient(config *oauth2.Config) *http.Client {
 	tok, err := tokenFromEnv()
 	if err != nil {
 		tok = getTokenFromWeb(config)
-		saveToken("sheetsToken.json", tok)
+		if err := saveToken("sheetsToken.json", tok); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	return config.Client(context.Background(), tok)
 }
@@ -110,12 +112,11 @@ func tokenFromEnv() (*oauth2.Token, error) {
 }
 
 // Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
+func saveToken(path string, token *oauth2.Token) error {
 	fmt.Printf("Saving credential file to: %s\n", path)
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Unable to cache oauth token: %v", err)
 	}
-	defer f.Close()
-	json.NewEncoder(f).Encode(token)
+	return json.NewEncoder(f).Encode(token)
 }
