@@ -14,5 +14,5 @@ const (
 	APIWalletsGetAllURL = "/wallets"
 
 	// Auth
-	APIAuthURL = "/auth"
+	APIAuthURL = "/auth/"
 )
