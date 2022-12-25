@@ -6,6 +6,7 @@ import (
 	"github.com/luxarts/jsend-go"
 	"log"
 	"loquegasto-telegram/internal/defines"
+	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/service"
 	"loquegasto-telegram/internal/utils/jwt"
 	"strconv"
@@ -16,11 +17,12 @@ import (
 )
 
 type CommandsController interface {
-	Start(c tg.Context) error
-	Help(c tg.Context) error
-	Ping(c tg.Context) error
-	Wallets(c tg.Context) error
-	CreateWallet(c tg.Context) error
+	Start(ctx tg.Context) error
+	Help(ctx tg.Context) error
+	Ping(ctx tg.Context) error
+	GetWallets(ctx tg.Context) error
+	CreateWallet(ctx tg.Context) error
+	AddTransaction(ctx tg.Context) error
 }
 
 type commandsController struct {
@@ -28,44 +30,53 @@ type commandsController struct {
 	txnSrv    service.TransactionsService
 	userSrv   service.UsersService
 	walletSrv service.WalletsService
+	oAuthSrv  service.OAuthService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService, oAuthSrv service.OAuthService) CommandsController {
 	return &commandsController{
 		bot:       bot,
 		txnSrv:    txnSrv,
 		userSrv:   usersSrv,
 		walletSrv: walletSrv,
+		oAuthSrv:  oAuthSrv,
 	}
 }
 
 func (c *commandsController) Start(ctx tg.Context) error {
-	timestamp := time.Unix(ctx.Message().Unixtime, 0)
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: ctx.Sender().ID,
-	})
-
-	// Create user
-	if err := c.userSrv.Create(ctx.Sender().ID, &timestamp, ctx.Message().Chat.ID, token); err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
-	// Create default wallet
-	if _, err := c.walletSrv.Create(ctx.Sender().ID, "Efectivo", 0.0, &timestamp, token); err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
-	// Show onboarding message
-	if err := c.botRespond(ctx, fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName)); err != nil {
-		c.errorHandler(ctx, err)
-		return err
+	if ctx.Chat().Type == tg.ChatPrivate {
+		return c.startPrivate(ctx)
+	} else if ctx.Chat().Type == tg.ChatGroup {
+		return c.startGroup(ctx)
 	}
 	return nil
 }
+func (c *commandsController) startPrivate(ctx tg.Context) error {
+	loginURL := c.oAuthSrv.GetLoginURL(ctx.Sender().ID)
+
+	// Create login button
+	selector := c.bot.NewMarkup()
+	urlBtn := selector.URL("Iniciar sesión con Google", loginURL)
+	selector.Inline(
+		selector.Row(urlBtn),
+	)
+
+	// Show onboarding message
+	if err := ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown, selector); err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	return nil
+}
+func (c *commandsController) startGroup(ctx tg.Context) error {
+	// Show onboarding message
+	c.botRespond(ctx, fmt.Sprintf("@%s registrado.", ctx.Sender().Username))
+	return nil
+}
+
 func (c *commandsController) Help(ctx tg.Context) error {
-	err := ctx.Send(defines.MessageHelp, tg.ModeMarkdown)
+	_, err := c.bot.Send(ctx.Recipient(), defines.MessageHelp, tg.ModeMarkdown)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -73,14 +84,14 @@ func (c *commandsController) Help(ctx tg.Context) error {
 	return nil
 }
 func (c *commandsController) Ping(ctx tg.Context) error {
-	err := ctx.Send("pong")
+	_, err := c.bot.Send(ctx.Recipient(), "pong")
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 	return nil
 }
-func (c *commandsController) Wallets(ctx tg.Context) error {
+func (c *commandsController) GetWallets(ctx tg.Context) error {
 	wallets, err := c.walletSrv.GetAll(ctx.Sender().ID)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -93,10 +104,7 @@ func (c *commandsController) Wallets(ctx tg.Context) error {
 		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
 	}
 
-	if err := c.botRespond(ctx, response); err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
+	c.botRespond(ctx, response)
 	return nil
 }
 func (c *commandsController) CreateWallet(ctx tg.Context) error {
@@ -118,10 +126,18 @@ func (c *commandsController) CreateWallet(ctx tg.Context) error {
 	}
 
 	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
-	if err := c.botRespond(ctx, response); err != nil {
-		c.errorHandler(ctx, err)
+	c.botRespond(ctx, response)
+	return nil
+}
+func (c *commandsController) AddTransaction(ctx tg.Context) error {
+	payload := domain.CommandTransactionPayload{}
+	if err := payload.Parse(ctx.Message().Payload); err != nil {
+		c.errorHandlerResponse(ctx, err)
 		return err
 	}
+
+	response := fmt.Sprintf(defines.MessageAddPaymentResponse, payload.Description, payload.Amount)
+	c.botRespond(ctx, response)
 	return nil
 }
 
@@ -152,21 +168,20 @@ func (c *commandsController) getWalletNameAndBalance(text string) (name string, 
 }
 func (c *commandsController) errorHandler(ctx tg.Context, err error) {
 	log.Println(err)
-	err = ctx.Send(defines.MessageError, tg.ModeMarkdown)
+	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
 func (c *commandsController) errorHandlerResponse(ctx tg.Context, err error) {
 	log.Println(err)
-	err = ctx.Send(fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
+	_, err = c.bot.Send(ctx.Recipient(), fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
-func (c *commandsController) botRespond(ctx tg.Context, msg string) error {
-	if err := ctx.Send(msg, tg.ModeMarkdown); err != nil {
-		return err
+func (c *commandsController) botRespond(ctx tg.Context, msg string) {
+	if _, err := c.bot.Send(ctx.Recipient(), msg, tg.ModeMarkdown); err != nil {
+		c.errorHandler(ctx, err)
 	}
-	return nil
 }

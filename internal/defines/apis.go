@@ -12,4 +12,7 @@ const (
 	// Wallets
 	APIWalletsCreateURL = "/wallets"
 	APIWalletsGetAllURL = "/wallets"
+
+	// Auth
+	APIAuthURL = "/auth/"
 )
