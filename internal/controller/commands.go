@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
-	tg "gopkg.in/tucnak/telebot.v2"
+	tg "gopkg.in/telebot.v3"
 )
 
 type CommandsController interface {
-	Start(m *tg.Message)
-	Help(m *tg.Message)
-	Ping(m *tg.Message)
-	GetWallets(m *tg.Message)
-	CreateWallet(m *tg.Message)
-	AddTransaction(m *tg.Message)
+	Start(ctx tg.Context) error
+	Help(ctx tg.Context) error
+	Ping(ctx tg.Context) error
+	GetWallets(ctx tg.Context) error
+	CreateWallet(ctx tg.Context) error
+	AddTransaction(ctx tg.Context) error
 }
 
 type commandsController struct {
@@ -30,69 +30,72 @@ type commandsController struct {
 	txnSrv    service.TransactionsService
 	userSrv   service.UsersService
 	walletSrv service.WalletsService
+	oAuthSrv  service.OAuthService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService, oAuthSrv service.OAuthService) CommandsController {
 	return &commandsController{
 		bot:       bot,
 		txnSrv:    txnSrv,
 		userSrv:   usersSrv,
 		walletSrv: walletSrv,
+		oAuthSrv:  oAuthSrv,
 	}
 }
 
-func (c *commandsController) Start(m *tg.Message) {
-	if m.Chat.Type == tg.ChatPrivate {
-		c.startPrivate(m)
-	} else if m.Chat.Type == tg.ChatGroup {
-		c.startGroup(m)
+func (c *commandsController) Start(ctx tg.Context) error {
+	if ctx.Chat().Type == tg.ChatPrivate {
+		return c.startPrivate(ctx)
+	} else if ctx.Chat().Type == tg.ChatGroup {
+		return c.startGroup(ctx)
 	}
+	return nil
 }
-func (c *commandsController) startPrivate(m *tg.Message) {
-	timestamp := time.Unix(m.Unixtime, 0)
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: m.Sender.ID,
-	})
+func (c *commandsController) startPrivate(ctx tg.Context) error {
+	loginURL := c.oAuthSrv.GetLoginURL(ctx.Sender().ID)
 
-	// Create user
-	if err := c.userSrv.Create(m.Sender.ID, &timestamp, m.Chat.ID, token); err != nil {
-		c.errorHandler(m, err)
-		return
-	}
-
-	// Create default wallet
-	if _, err := c.walletSrv.Create(m.Sender.ID, "Efectivo", 0.0, &timestamp, token); err != nil {
-		c.errorHandler(m, err)
-		return
-	}
+	// Create login button
+	selector := c.bot.NewMarkup()
+	urlBtn := selector.URL("Iniciar sesión con Google", loginURL)
+	selector.Inline(
+		selector.Row(urlBtn),
+	)
 
 	// Show onboarding message
-	if _, err := c.bot.Send(m.Sender, fmt.Sprintf(defines.MessageStart, m.Sender.FirstName), tg.ModeMarkdown); err != nil {
-		c.errorHandler(m, err)
+	if err := ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown, selector); err != nil {
+		c.errorHandler(ctx, err)
+		return err
 	}
+
+	return nil
 }
-func (c *commandsController) startGroup(m *tg.Message) {
+func (c *commandsController) startGroup(ctx tg.Context) error {
 	// Show onboarding message
-	c.botRespond(m, fmt.Sprintf("@%s registrado.", m.Sender.Username))
+	c.botRespond(ctx, fmt.Sprintf("@%s registrado.", ctx.Sender().Username))
+	return nil
 }
 
-func (c *commandsController) Help(m *tg.Message) {
-	_, err := c.bot.Send(m.Sender, defines.MessageHelp, tg.ModeMarkdown)
+func (c *commandsController) Help(ctx tg.Context) error {
+	_, err := c.bot.Send(ctx.Recipient(), defines.MessageHelp, tg.ModeMarkdown)
 	if err != nil {
-		c.errorHandler(m, err)
+		c.errorHandler(ctx, err)
+		return err
 	}
+	return nil
 }
-func (c *commandsController) Ping(m *tg.Message) {
-	_, err := c.bot.Send(m.Sender, "pong")
+func (c *commandsController) Ping(ctx tg.Context) error {
+	_, err := c.bot.Send(ctx.Recipient(), "pong")
 	if err != nil {
-		c.errorHandler(m, err)
+		c.errorHandler(ctx, err)
+		return err
 	}
+	return nil
 }
-func (c *commandsController) GetWallets(m *tg.Message) {
-	wallets, err := c.walletSrv.GetAll(m.Sender.ID)
+func (c *commandsController) GetWallets(ctx tg.Context) error {
+	wallets, err := c.walletSrv.GetAll(ctx.Sender().ID)
 	if err != nil {
-		c.errorHandler(m, err)
-		return
+		c.errorHandler(ctx, err)
+		return err
 	}
 
 	// Build response
@@ -101,38 +104,41 @@ func (c *commandsController) GetWallets(m *tg.Message) {
 		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
 	}
 
-	c.botRespond(m, response)
+	c.botRespond(ctx, response)
+	return nil
 }
-func (c *commandsController) CreateWallet(m *tg.Message) {
-	timestamp := time.Unix(m.Unixtime, 0)
+func (c *commandsController) CreateWallet(ctx tg.Context) error {
+	timestamp := time.Unix(ctx.Message().Unixtime, 0)
 	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: m.Sender.ID,
+		Subject: ctx.Sender().ID,
 	})
 
-	name, balance, err := c.getWalletNameAndBalance(m.Payload)
+	name, balance, err := c.getWalletNameAndBalance(ctx.Message().Payload)
 	if err != nil {
-		c.errorHandler(m, err)
-		return
+		c.errorHandler(ctx, err)
+		return err
 	}
 
-	wallet, err := c.walletSrv.Create(m.Sender.ID, name, balance, &timestamp, token)
+	wallet, err := c.walletSrv.Create(ctx.Sender().ID, name, balance, &timestamp, token)
 	if err, isError := err.(*jsend.Body); isError && err != nil {
-		c.errorHandlerResponse(m, err)
-		return
+		c.errorHandlerResponse(ctx, err)
+		return err
 	}
 
 	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
-	c.botRespond(m, response)
+	c.botRespond(ctx, response)
+	return nil
 }
-func (c *commandsController) AddTransaction(m *tg.Message) {
+func (c *commandsController) AddTransaction(ctx tg.Context) error {
 	payload := domain.CommandTransactionPayload{}
-	if err := payload.Parse(m.Payload); err != nil {
-		c.errorHandlerResponse(m, err)
-		return
+	if err := payload.Parse(ctx.Message().Payload); err != nil {
+		c.errorHandlerResponse(ctx, err)
+		return err
 	}
 
 	response := fmt.Sprintf(defines.MessageAddPaymentResponse, payload.Description, payload.Amount)
-	c.botRespond(m, response)
+	c.botRespond(ctx, response)
+	return nil
 }
 
 // Utils
@@ -160,22 +166,22 @@ func (c *commandsController) getWalletNameAndBalance(text string) (name string, 
 
 	return
 }
-func (c *commandsController) errorHandler(m *tg.Message, err error) {
+func (c *commandsController) errorHandler(ctx tg.Context, err error) {
 	log.Println(err)
-	_, err = c.bot.Send(m.Chat, defines.MessageError, tg.ModeMarkdown)
+	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
-func (c *commandsController) errorHandlerResponse(m *tg.Message, err error) {
+func (c *commandsController) errorHandlerResponse(ctx tg.Context, err error) {
 	log.Println(err)
-	_, err = c.bot.Send(m.Chat, fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
+	_, err = c.bot.Send(ctx.Recipient(), fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
-func (c *commandsController) botRespond(m *tg.Message, msg string) {
-	if _, err := c.bot.Send(m.Chat, msg, tg.ModeMarkdown); err != nil {
-		c.errorHandler(m, err)
+func (c *commandsController) botRespond(ctx tg.Context, msg string) {
+	if _, err := c.bot.Send(ctx.Recipient(), msg, tg.ModeMarkdown); err != nil {
+		c.errorHandler(ctx, err)
 	}
 }

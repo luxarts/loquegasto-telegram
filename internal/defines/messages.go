@@ -4,11 +4,7 @@ const (
 	// Chat individual
 	MessageStart = "Hola %s!\n" +
 		"🤓 Soy tu asistente de gastos. Acá vas a poder anotar todas las transacciones que hagas de una manera rápida para que puedas tener control sobre cómo usás tu dinero.\n" +
-		"Simplemente tenes que escribir el monto de la transacción seguido de una descripción.\n" +
-		"Para que puedas tener controlados tus gastos es necesario que me indiques desde cual _billetera_ estás haciendo el movimiento. " +
-		"Las _billeteras_ son únicamente para que sepas con qué medio hiciste la transacción, podés crear la cantidad que quieras usando el comando " + CommandCreateWallet + ".\n" +
-		"Te creé la billetera *Efectivo* con un balance inicial de *$0.00* que voy a usar por defecto si no me indicás otra.\n\n" +
-		"❓Para conocer todos los comandos disponibles escribí " + CommandHelp + ".\n"
+		"Para comenzar necesito que inicies sesión con Google para crearte una Google Sheet donde almacenaré toda la información."
 	MessageHelp = "Para registrar un pago podés decírmelo usando la sintaxis:\n" +
 		"`valor descripción`\n" +
 		"Ejemplo:\n" +

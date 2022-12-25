@@ -6,5 +6,8 @@ const (
 	EnvJWTSecret           = "JWT_SECRET"
 	EnvSheetsToken         = "SHEETS_TOKEN"
 	EnvSheetsSpreadsheetID = "SHEETS_SPREADSHEET_ID"
-	EnvSheetsConfig        = "SHEETS_CONFIG"
+
+	EnvGoogleClientID     = "GOOGLE_CLIENT_ID"
+	EnvGoogleProjectID    = "GOOGLE_PROJECT_ID"
+	EnvGoogleClientSecret = "GOOGLE_CLIENT_SECRET"
 )

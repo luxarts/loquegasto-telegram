@@ -16,7 +16,7 @@ type Header struct {
 }
 
 type Payload struct {
-	Subject int `json:"sub"`
+	Subject int64 `json:"sub"`
 }
 
 func GenerateToken(header *Header, payload *Payload) string {
@@ -54,7 +54,7 @@ func Verify(header string, payload string, signature string) bool {
 	return signatureGenerated == signature
 }
 
-func GetSubject(token string) (int, error) {
+func GetSubject(token string) (int64, error) {
 	payload := strings.Split(token, ".")[1]
 	payloadDecoded := base64.Decode(payload)
 

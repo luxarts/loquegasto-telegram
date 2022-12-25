@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	tgbot "gopkg.in/tucnak/telebot.v2"
+	tgbot "gopkg.in/telebot.v3"
 )
 
 var bot *tgbot.Bot
@@ -47,9 +47,10 @@ func mapCommands() {
 	usersSrv := service.NewUsersService(usersRepo)
 	walletsSrv := service.NewWalletsService(walletsRepo)
 	sheetsSrv := service.NewSheetsService()
+	oAuthSrv := service.NewOAuthService()
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
+	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv, oAuthSrv)
 	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv, sheetsSrv)
 	grpCtrl := controller.NewGroupsController(bot)
 
