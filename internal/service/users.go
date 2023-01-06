@@ -23,6 +23,7 @@ func (s *usersService) Create(userID int64, timestamp *time.Time, chatID int64, 
 		ID:        userID,
 		CreatedAt: timestamp,
 		ChatID:    int(chatID),
+		UpdatedAt: timestamp,
 	}
 	return s.repo.Create(&userDTO, token)
 }

@@ -46,13 +46,11 @@ func mapCommands() {
 	txnSrv := service.NewTransactionsService(txnRepo)
 	usersSrv := service.NewUsersService(usersRepo)
 	walletsSrv := service.NewWalletsService(walletsRepo)
-	sheetsSrv := service.NewSheetsService()
-	oAuthSrv := service.NewOAuthService()
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv, oAuthSrv)
-	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv, sheetsSrv)
-	grpCtrl := controller.NewGroupsController(bot)
+	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
+	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv)
+	//grpCtrl := controller.NewGroupsController(bot)
 
 	// Commands
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
@@ -60,14 +58,12 @@ func mapCommands() {
 	bot.Handle(defines.CommandGetWallets, cmdCtrl.GetWallets)
 	bot.Handle(defines.CommandCreateWallet, cmdCtrl.CreateWallet)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
-	bot.Handle(defines.CommandAddTransaction, cmdCtrl.AddTransaction)
 
 	// Parser
 	bot.Handle(tgbot.OnText, parserCtrl.Parse)
 	bot.Handle(tgbot.OnEdited, parserCtrl.ParseEdited)
 
 	// Group events
-	bot.Handle(tgbot.OnAddedToGroup, grpCtrl.Start)
-	bot.Handle(tgbot.OnUserJoined, grpCtrl.RegisterUsers)
-
+	//bot.Handle(tgbot.OnAddedToGroup, grpCtrl.Start)
+	//bot.Handle(tgbot.OnUserJoined, grpCtrl.RegisterUsers)
 }

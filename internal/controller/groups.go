@@ -1,12 +1,6 @@
 package controller
 
-import (
-	"fmt"
-	tg "gopkg.in/telebot.v3"
-	"log"
-	"loquegasto-telegram/internal/defines"
-)
-
+/*
 type GroupsController interface {
 	Start(ctx tg.Context) error
 	RegisterUsers(ctx tg.Context) error
@@ -51,4 +45,4 @@ func (c *groupsController) botRespond(ctx tg.Context, msg string) {
 	if _, err := c.bot.Send(ctx.Recipient(), msg, tg.ModeMarkdown); err != nil {
 		c.errorHandler(ctx, err)
 	}
-}
+}*/

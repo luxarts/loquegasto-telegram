@@ -2,15 +2,13 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 	"log"
 	"loquegasto-telegram/internal/bot"
 	"net/http"
 )
 
 func main() {
-	_ = godotenv.Load()
-
 	b := bot.New()
 
 	log.Println("Bot started")
