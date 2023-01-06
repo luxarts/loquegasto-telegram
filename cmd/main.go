@@ -1,9 +1,8 @@
 package main
 
 import (
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 	"log"
 	"loquegasto-telegram/internal/bot"
 	"net/http"

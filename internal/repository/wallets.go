@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
+	"loquegasto-telegram/internal/utils/maptostruct"
 	"net/http"
 	"os"
 
@@ -53,7 +54,13 @@ func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*do
 		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
 	}
 
-	return body.Data.(*domain.WalletDTO), nil
+	var response domain.WalletDTO
+	err = maptostruct.Convert(body.Data, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
 	req := r.client.R()
@@ -105,15 +112,11 @@ func (r *walletsRepository) GetByName(name string, token string) (*domain.Wallet
 	}
 
 	// Convert map into struct
-	jsonBody, err := json.Marshal(body.Data)
-	if err != nil {
-		return nil, err
-	}
-	var response []domain.WalletDTO
-	err = json.Unmarshal(jsonBody, &response)
+	var response domain.WalletDTO
+	err = maptostruct.Convert(body.Data, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &response[0], nil
+	return &response, nil
 }

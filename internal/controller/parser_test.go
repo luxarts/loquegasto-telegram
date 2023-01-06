@@ -10,10 +10,13 @@ import (
 func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignNoWallet(t *testing.T) {
 	// Given
 	msg := "123 No Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -21,10 +24,13 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignNoWallet(t *test
 func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignNoWallet(t *testing.T) {
 	// Given
 	msg := "123.45 Dot Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -32,10 +38,13 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignNoWallet(t *tes
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignNoWallet(t *testing.T) {
 	// Given
 	msg := "123,45 Comma Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -43,10 +52,13 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignNoWallet(t *t
 func TestParserController_GetTypeFromMessage_TypeNoDecimalSignNoWallet(t *testing.T) {
 	// Given
 	msg := "$123 No Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -54,10 +66,13 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalSignNoWallet(t *testin
 func TestParserController_GetTypeFromMessage_TypeDotDecimalSignNoWallet(t *testing.T) {
 	// Given
 	msg := "$123.45 Dot Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -65,10 +80,13 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalSignNoWallet(t *testi
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignNoWallet(t *testing.T) {
 	// Given
 	msg := "$123,45 Comma Decimal No Sign No Category No Wallet"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -76,10 +94,13 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignNoWallet(t *tes
 func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignWallet(t *testing.T) {
 	// Given
 	msg := "123 No Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -87,10 +108,13 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalNoSignWallet(t *testin
 func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignWallet(t *testing.T) {
 	// Given
 	msg := "123.45 Dot Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -98,10 +122,13 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalNoSignWallet(t *testi
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignWallet(t *testing.T) {
 	// Given
 	msg := "123,45 Comma Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -109,10 +136,13 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalNoSignWallet(t *tes
 func TestParserController_GetTypeFromMessage_TypeNoDecimalSignWallet(t *testing.T) {
 	// Given
 	msg := "$123 No Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -120,10 +150,13 @@ func TestParserController_GetTypeFromMessage_TypeNoDecimalSignWallet(t *testing.
 func TestParserController_GetTypeFromMessage_TypeDotDecimalSignWallet(t *testing.T) {
 	// Given
 	msg := "$123.45 Dot Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -131,10 +164,13 @@ func TestParserController_GetTypeFromMessage_TypeDotDecimalSignWallet(t *testing
 func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignWallet(t *testing.T) {
 	// Given
 	msg := "$123,45 Comma Decimal No Sign No Category (Wallet)"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -142,10 +178,13 @@ func TestParserController_GetTypeFromMessage_TypeCommaDecimalSignWallet(t *testi
 func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalNoSignNoWallet(t *testing.T) {
 	// Given
 	msg := "-123 Negative No Decimal No Sign No Wallet No Category"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -153,10 +192,13 @@ func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalNoSignNoWallet
 func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalSignNoWallet(t *testing.T) {
 	// Given
 	msg := "$-123 Negative No Decimal Sign No Wallet No Category"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeAddTransaction, msgType)
@@ -164,10 +206,13 @@ func TestParserController_GetTypeFromMessage_TypeNegativeNoDecimalSignNoWallet(t
 func TestParserController_GetTypeFromMessage_Unknown(t *testing.T) {
 	// Given
 	msg := "abcdefg"
-	ctrl := NewParserController(nil, nil, nil, nil)
+	ctrl := NewParserController(nil, nil, nil)
 
 	// When
-	msgType := ctrl.GetTypeFromMessage(&tg.Message{Payload: msg})
+	msgType := ctrl.GetTypeFromMessage(&tg.Message{
+		Chat:    &tg.Chat{Type: tg.ChatPrivate},
+		Payload: msg,
+	})
 
 	// Then
 	require.EqualValues(t, messageTypeUnknown, msgType)

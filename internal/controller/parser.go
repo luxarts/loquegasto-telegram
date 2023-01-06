@@ -3,19 +3,17 @@ package controller
 import (
 	"errors"
 	"fmt"
+	tg "gopkg.in/telebot.v3"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/repository"
 	"loquegasto-telegram/internal/service"
 	"strconv"
 	"strings"
-	"time"
-
-	tg "gopkg.in/telebot.v3"
 )
 
 const (
-	messageTypeTransaction = iota
+	messageTypeAddTransaction = iota
 	messageTypeTransactionGroup
 	messageTypeUnknown
 )
@@ -25,63 +23,56 @@ type messageType int
 type ParserController interface {
 	Parse(ctx tg.Context) error
 	ParseEdited(ctx tg.Context) error
-	GetTypeFromMessage(m *tg.Message) messageType
-	AddTransaction(m *tg.Message)
-	AddTransactionGroup(m *tg.Message)
-	UpdateTransaction(m *tg.Message)
-	GetParametersFromMessage(msg *string) (amount float64, description, walletName string, err error)
+	GetTypeFromMessage(ctx *tg.Message) messageType
+	AddTransaction(ctx tg.Context) error
+	UpdateTransaction(ctx tg.Context) error
+	GetParametersFromMessage(msg string) (amount float64, description, walletName string, err error)
 }
 type parserController struct {
 	bot       *tg.Bot
 	txnSrv    service.TransactionsService
 	walletSrv service.WalletsService
-	sheetsSrv service.SheetsService
 }
 
-func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService, walletSrv service.WalletsService, sheetsSrv service.SheetsService) ParserController {
+func NewParserController(bot *tg.Bot, txnSrv service.TransactionsService, walletSrv service.WalletsService) ParserController {
 	return &parserController{
 		bot:       bot,
 		txnSrv:    txnSrv,
 		walletSrv: walletSrv,
-		sheetsSrv: sheetsSrv,
 	}
 }
 
 func (c *parserController) Parse(ctx tg.Context) error {
-	t := c.GetTypeFromMessage(ctx.Message().Text)
+	t := c.GetTypeFromMessage(ctx.Message())
+	var err error
 
 	switch t {
-	case messageTypeTransaction:
-		c.AddTransaction(ctx.Message())
-	case messageTypeTransactionGroup:
-		c.AddTransactionGroup(ctx.Message())
 	case messageTypeAddTransaction:
-		c.AddTransaction(ctx)
+		err = c.AddTransaction(ctx)
 	}
-	return nil
+	return err
 }
 func (c *parserController) ParseEdited(ctx tg.Context) error {
-	t := c.GetTypeFromMessage(ctx.Message().Text)
+	t := c.GetTypeFromMessage(ctx.Message())
+	var err error
 
 	switch t {
 	case messageTypeAddTransaction:
-		return c.UpdateTransaction(ctx)
-	case messageTypeTransaction:
-		c.UpdateTransaction(ctx.Message())
+		err = c.UpdateTransaction(ctx)
 	}
-	return nil
+	return err
 }
 
 func (c *parserController) GetTypeFromMessage(m *tg.Message) messageType {
 	// Add payment check
 	if !m.FromGroup() {
-		r := defines.RegexTransaction.FindStringIndex(m.Text)
+		r := defines.RegexTransaction.FindStringIndex(m.Payload)
 		if r != nil {
-			return messageTypeTransaction
+			return messageTypeAddTransaction
 		}
 	} else {
 		// Add group transaction check
-		r := defines.RegexTransactionGroup.FindStringIndex(m.Text)
+		r := defines.RegexTransactionGroup.FindStringIndex(m.Payload)
 		if r != nil {
 			return messageTypeTransactionGroup
 		}
@@ -90,7 +81,7 @@ func (c *parserController) GetTypeFromMessage(m *tg.Message) messageType {
 	return messageTypeUnknown
 }
 func (c *parserController) UpdateTransaction(ctx tg.Context) error {
-	amount, description, walletName, err := c.GetParametersFromMessage(&ctx.Message().Text)
+	amount, description, walletName, err := c.GetParametersFromMessage(ctx.Message().Payload)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -134,13 +125,13 @@ func (c *parserController) UpdateTransaction(ctx tg.Context) error {
 	return nil
 }
 func (c *parserController) AddTransaction(ctx tg.Context) error {
-	amount, description, walletName, err := c.GetParametersFromMessage(&ctx.Message().Text)
+	amount, description, walletName, err := c.GetParametersFromMessage(ctx.Message().Payload)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 	if walletName == "" {
-		walletName = "efectivo"
+		walletName = defines.DefaultWalletName
 	}
 	wallet, err := c.walletSrv.GetByName(walletName, ctx.Message().Sender.ID)
 	if err == repository.ErrNotFound {
@@ -177,27 +168,9 @@ func (c *parserController) AddTransaction(ctx tg.Context) error {
 
 	return nil
 }
-func (c *parserController) AddTransactionGroup(m *tg.Message) {
-	amount, description, payerName, err := c.GetAddTransactionData(m)
-	if err != nil {
-		c.errorHandler(m, err)
-	}
-
-	resp, err := c.sheetsSrv.AddRow(time.Unix(m.Unixtime, 0), description, amount, payerName)
-	if err != nil {
-		c.errorHandler(m, err)
-	}
-	respRange := strings.Replace(resp.Updates.UpdatedRange, "Gastos!", "", 1)
-	msg := "Anotado -> [link](https://docs.google.com/spreadsheets/d/" + c.sheetsSrv.GetSpreadsheetID() + "/edit#gid=0&range=" + respRange + ")"
-	_, err = c.bot.Send(m.Chat, msg, tg.ModeMarkdown, tg.NoPreview)
-
-	if err != nil {
-		c.errorHandler(m, err)
-	}
-}
-func (c *parserController) GetParametersFromMessage(msg *string) (amount float64, description, walletName string, err error) {
+func (c *parserController) GetParametersFromMessage(msg string) (amount float64, description, walletName string, err error) {
 	// Search for amount and description
-	result := defines.RegexTransaction.FindAllStringSubmatch(*msg, -1)
+	result := defines.RegexTransaction.FindAllStringSubmatch(msg, -1)
 
 	// Validate results
 	if len(result) != 1 || len(result[0]) != 4 {
@@ -259,16 +232,23 @@ func (c *parserController) GetAddTransactionData(m *tg.Message) (amount float64,
 
 	return
 }
+
 func (c *parserController) errorHandler(ctx tg.Context, err error) {
 	log.Println(err)
-	err = ctx.Send(defines.MessageError)
+	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
-func (c *parserController) botRespond(ctx tg.Context, msg string) error {
-	if err := ctx.Send(msg, tg.ModeMarkdown); err != nil {
-		return err
+func (c *parserController) errorHandlerResponse(ctx tg.Context, err error) {
+	log.Println(err)
+	_, err = c.bot.Send(ctx.Recipient(), fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
+	if err != nil {
+		log.Println(err)
 	}
-	return nil
+}
+func (c *parserController) botRespond(ctx tg.Context, msg string) {
+	if err := ctx.Send(msg, tg.ModeMarkdown); err != nil {
+		c.errorHandler(ctx, err)
+	}
 }
