@@ -6,23 +6,23 @@ import (
 	"time"
 )
 
-type TransactionStatusService interface {
+type UserStateService interface {
 	Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error
-	GetByUserID(userID int64) (*domain.TransactionStatusDTO, error)
-	UpdateByUserID(dto *domain.TransactionStatusDTO) error
+	GetByUserID(userID int64) (*domain.UserStateDTO, error)
+	UpdateByUserID(dto *domain.UserStateDTO) error
 	DeleteByUserID(userID int64) error
 }
 
-type transactionStatusService struct {
-	repo repository.TransactionStatusRepository
+type userStateService struct {
+	repo repository.UserStateRepository
 }
 
-func NewTransactionStatusService(repo repository.TransactionStatusRepository) TransactionStatusService {
-	return &transactionStatusService{repo: repo}
+func NewUserStateService(repo repository.UserStateRepository) UserStateService {
+	return &userStateService{repo: repo}
 }
 
-func (s *transactionStatusService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error {
-	dto := &domain.TransactionStatusDTO{
+func (s *userStateService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error {
+	dto := &domain.UserStateDTO{
 		Status: status,
 		Data: domain.TransactionDTO{
 			MsgID:       msgID,
@@ -34,12 +34,12 @@ func (s *transactionStatusService) Create(userID int64, amount float64, descript
 	}
 	return s.repo.Create(dto)
 }
-func (s *transactionStatusService) GetByUserID(userID int64) (*domain.TransactionStatusDTO, error) {
+func (s *userStateService) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	return s.repo.GetByUserID(userID)
 }
-func (s *transactionStatusService) UpdateByUserID(dto *domain.TransactionStatusDTO) error {
+func (s *userStateService) UpdateByUserID(dto *domain.UserStateDTO) error {
 	return s.repo.UpdateByUserID(dto)
 }
-func (s *transactionStatusService) DeleteByUserID(userID int64) error {
+func (s *userStateService) DeleteByUserID(userID int64) error {
 	return s.repo.DeleteByUserID(userID)
 }

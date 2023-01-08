@@ -1,6 +1,6 @@
 package domain
 
-type TransactionStatusDTO struct {
+type UserStateDTO struct {
 	Status string         `json:"status"`
 	Data   TransactionDTO `json:"data"`
 }

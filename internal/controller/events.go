@@ -26,20 +26,20 @@ type EventsController interface {
 	//ParseEdited(ctx tg.Context) error
 }
 type eventsController struct {
-	bot          *tg.Bot
-	txnSvc       service.TransactionsService
-	txnStatusSvc service.TransactionStatusService
-	walletsSvc   service.WalletsService
-	catSvc       service.CategoriesService
+	bot         *tg.Bot
+	txnSvc      service.TransactionsService
+	usrStateSvc service.UserStateService
+	walletsSvc  service.WalletsService
+	catSvc      service.CategoriesService
 }
 
-func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, txnStatusSvc service.TransactionStatusService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
+func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
 	return &eventsController{
-		bot:          bot,
-		txnSvc:       txnSvc,
-		txnStatusSvc: txnStatusSvc,
-		walletsSvc:   walletsSvc,
-		catSvc:       catSvc,
+		bot:         bot,
+		txnSvc:      txnSvc,
+		usrStateSvc: usrStateSvc,
+		walletsSvc:  walletsSvc,
+		catSvc:      catSvc,
 	}
 }
 
@@ -55,16 +55,16 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 }
 func (c *eventsController) Process(ctx tg.Context) error {
 	userID := ctx.Sender().ID
-	txnStatus, err := c.txnStatusSvc.GetByUserID(userID)
+	txnStatus, err := c.usrStateSvc.GetByUserID(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	switch txnStatus.Status {
-	case defines.StatusWalletSelection:
+	case defines.StateWalletSelection:
 		err = c.walletSelection(ctx, txnStatus)
-	case defines.StatusCategorySelection:
+	case defines.StateCategorySelection:
 		err = c.categorySelection(ctx, txnStatus)
 	}
 
@@ -138,7 +138,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 	}
 
 	// Create and set status to next step: wallet selection
-	err = c.txnStatusSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StatusWalletSelection)
+	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StateWalletSelection)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -164,7 +164,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 
 	return nil
 }
-func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.TransactionStatusDTO) error {
+func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	categories, err := c.catSvc.GetAll(txnStatus.Data.UserID)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -178,8 +178,8 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Tra
 		return err
 	}
 	txnStatus.Data.WalletID = walletID
-	txnStatus.Status = defines.StatusCategorySelection
-	err = c.txnStatusSvc.UpdateByUserID(txnStatus)
+	txnStatus.Status = defines.StateCategorySelection
+	err = c.usrStateSvc.UpdateByUserID(txnStatus)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -203,7 +203,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Tra
 
 	return nil
 }
-func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.TransactionStatusDTO) error {
+func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	catID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -238,7 +238,7 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.T
 	}
 
 	// Delete status
-	err = c.txnStatusSvc.DeleteByUserID(txnStatus.Data.UserID)
+	err = c.usrStateSvc.DeleteByUserID(txnStatus.Data.UserID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err

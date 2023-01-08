@@ -8,23 +8,23 @@ import (
 	"strconv"
 )
 
-type TransactionStatusRepository interface {
-	Create(dto *domain.TransactionStatusDTO) error
-	GetByUserID(userID int64) (*domain.TransactionStatusDTO, error)
-	UpdateByUserID(dto *domain.TransactionStatusDTO) error
+type UserStateRepository interface {
+	Create(dto *domain.UserStateDTO) error
+	GetByUserID(userID int64) (*domain.UserStateDTO, error)
+	UpdateByUserID(dto *domain.UserStateDTO) error
 	DeleteByUserID(userID int64) error
 }
-type transactionStatusRepository struct {
+type userStateRepository struct {
 	rc *redis.Client
 }
 
-func NewTransactionStatusRepository(rc *redis.Client) TransactionStatusRepository {
-	return &transactionStatusRepository{
+func NewUserStateRepository(rc *redis.Client) UserStateRepository {
+	return &userStateRepository{
 		rc: rc,
 	}
 }
 
-func (r *transactionStatusRepository) Create(dto *domain.TransactionStatusDTO) error {
+func (r *userStateRepository) Create(dto *domain.UserStateDTO) error {
 	dtoBytes, err := json.Marshal(dto)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (r *transactionStatusRepository) Create(dto *domain.TransactionStatusDTO) e
 	ctx := context.Background()
 	return r.rc.Set(ctx, strconv.FormatInt(dto.Data.UserID, 10), string(dtoBytes), 0).Err()
 }
-func (r *transactionStatusRepository) GetByUserID(userID int64) (*domain.TransactionStatusDTO, error) {
+func (r *userStateRepository) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	uID := strconv.FormatInt(userID, 10)
 	ctx := context.Background()
 	res, err := r.rc.Get(ctx, uID).Result()
@@ -41,7 +41,7 @@ func (r *transactionStatusRepository) GetByUserID(userID int64) (*domain.Transac
 		return nil, err
 	}
 
-	var dto domain.TransactionStatusDTO
+	var dto domain.UserStateDTO
 	err = json.Unmarshal([]byte(res), &dto)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (r *transactionStatusRepository) GetByUserID(userID int64) (*domain.Transac
 
 	return &dto, nil
 }
-func (r *transactionStatusRepository) UpdateByUserID(dto *domain.TransactionStatusDTO) error {
+func (r *userStateRepository) UpdateByUserID(dto *domain.UserStateDTO) error {
 	dtoBytes, err := json.Marshal(dto)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func (r *transactionStatusRepository) UpdateByUserID(dto *domain.TransactionStat
 	ctx := context.Background()
 	return r.rc.Set(ctx, strconv.FormatInt(dto.Data.UserID, 10), string(dtoBytes), 0).Err()
 }
-func (r *transactionStatusRepository) DeleteByUserID(userID int64) error {
+func (r *userStateRepository) DeleteByUserID(userID int64) error {
 	ctx := context.Background()
 	return r.rc.Del(ctx, strconv.FormatInt(userID, 10)).Err()
 }
