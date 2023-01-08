@@ -9,6 +9,7 @@ import (
 	"loquegasto-telegram/internal/utils/maptostruct"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/luxarts/jsend-go"
@@ -20,6 +21,7 @@ type WalletsRepository interface {
 	Create(transactionDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error)
 	GetAll(token string) (*[]domain.WalletDTO, error)
 	GetByName(name string, token string) (*domain.WalletDTO, error)
+	GetByID(ID int, token string) (*domain.WalletDTO, error)
 }
 
 type walletsRepository struct {
@@ -114,6 +116,34 @@ func (r *walletsRepository) GetByName(name string, token string) (*domain.Wallet
 	// Convert map into struct
 	var response domain.WalletDTO
 	err = maptostruct.Convert(body.Data, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+func (r *walletsRepository) GetByID(ID int, token string) (*domain.WalletDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	req = req.SetPathParam(defines.ParamWalletID, strconv.Itoa(ID))
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetByID))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+
+	// Convert map into struct
+	jsonBody, err := json.Marshal(body.Data)
+	if err != nil {
+		return nil, err
+	}
+	var response domain.WalletDTO
+	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err
 	}
