@@ -16,15 +16,15 @@ const (
 		"Los comandos disponibles son:\n" +
 		CommandHelp + " - Muestra este mensaje\n" +
 		CommandGetWallets + " - Muestra tus billeteras"
-
+	MessageCancel = "❌ Operación cancelada."
 	// Errores
-	MessageError               = "Ups! Parece que hubo un error. 😨"
-	MessageErrorResponse       = "Ups! Parece que hubo un error. 😨 \n```\n%s\n```"
+	MessageError               = "😨 Ups! Parece que hubo un error. "
+	MessageErrorResponse       = MessageError + "\n```\n%+v\n```"
 	MessageErrorWalletNotFound = "No encontré una billetera con ese nombre."
 
 	// AddTransaction
-	MessageAddPaymentResponseWithWalletAndCategory = "Listo, ya anoté tu pago de *%s* (%s) por *$%.2f* con *%s*."
-	MessageAddMoneyResponse                        = "Listo, ya anoté ingreso de dinero de *%s* por *$%.2f* en *%s*."
+	MessageAddPaymentResponse = "✅ Listo, ya anoté tu pago de *%s* (%s) por *$%.2f* con *%s*."
+	MessageAddMoneyResponse   = "Listo, ya anoté ingreso de dinero de *%s* (%s) por *$%.2f* en *%s*."
 
 	// UpdateTransaction
 	MesssageUpdatePaymentResponse = "Listo, ya modifiqué la transacción."

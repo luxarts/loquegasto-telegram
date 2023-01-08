@@ -57,7 +57,7 @@ func mapCommands() {
 	catSvc := service.NewCategoriesService(catRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc)
+	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, txnStatusSvc)
 	evtCtrl := controller.NewEventsController(bot, txnSvc, txnStatusSvc, walletsSvc, catSvc)
 	//grpCtrl := controller.NewGroupsController(bot)
 
@@ -66,6 +66,7 @@ func mapCommands() {
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandGetWallets, cmdCtrl.GetWallets)
 	bot.Handle(defines.CommandCreateWallet, cmdCtrl.CreateWallet)
+	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 
 	// Events

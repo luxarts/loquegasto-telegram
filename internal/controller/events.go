@@ -244,13 +244,26 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.T
 		return err
 	}
 
-	err = ctx.Edit(
-		fmt.Sprintf(defines.MessageAddPaymentResponseWithWalletAndCategory,
+	var msg string
+
+	if txnStatus.Data.Amount > 0 {
+		msg = fmt.Sprintf(defines.MessageAddPaymentResponse,
 			txnStatus.Data.Description,
 			cat.Name,
 			txnStatus.Data.Amount,
 			wal.Name,
-		),
+		)
+	} else {
+		msg = fmt.Sprintf(defines.MessageAddMoneyResponse,
+			txnStatus.Data.Description,
+			cat.Name,
+			txnStatus.Data.Amount,
+			wal.Name,
+		)
+	}
+
+	err = ctx.Edit(
+		msg,
 		&tg.SendOptions{
 			ReplyTo: ctx.Message(),
 		},

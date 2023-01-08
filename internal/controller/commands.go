@@ -21,21 +21,24 @@ type CommandsController interface {
 	Ping(ctx tg.Context) error
 	GetWallets(ctx tg.Context) error
 	CreateWallet(ctx tg.Context) error
+	Cancel(ctx tg.Context) error
 }
 
 type commandsController struct {
-	bot       *tg.Bot
-	txnSrv    service.TransactionsService
-	userSrv   service.UsersService
-	walletSrv service.WalletsService
+	bot          *tg.Bot
+	txnSvc       service.TransactionsService
+	userSvc      service.UsersService
+	walletSvc    service.WalletsService
+	txnStatusSvc service.TransactionStatusService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSrv service.TransactionsService, usersSrv service.UsersService, walletSrv service.WalletsService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, txnStatusSvc service.TransactionStatusService) CommandsController {
 	return &commandsController{
-		bot:       bot,
-		txnSrv:    txnSrv,
-		userSrv:   usersSrv,
-		walletSrv: walletSrv,
+		bot:          bot,
+		txnSvc:       txnSvc,
+		userSvc:      usersSvc,
+		walletSvc:    walletSvc,
+		txnStatusSvc: txnStatusSvc,
 	}
 }
 
@@ -60,14 +63,14 @@ func (c *commandsController) startPrivate(ctx tg.Context) error {
 	ts := time.Unix(ctx.Message().Unixtime, 0)
 
 	// Create user
-	err := c.userSrv.Create(ctx.Sender().ID, &ts, ctx.Chat().ID, token)
+	err := c.userSvc.Create(ctx.Sender().ID, &ts, ctx.Chat().ID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Crear wallet
-	_, err = c.walletSrv.Create(ctx.Sender().ID, defines.DefaultWalletName, 0, &ts, token)
+	_, err = c.walletSvc.Create(ctx.Sender().ID, defines.DefaultWalletName, 0, &ts, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -98,17 +101,20 @@ func (c *commandsController) Ping(ctx tg.Context) error {
 	return err
 }
 func (c *commandsController) GetWallets(ctx tg.Context) error {
-	wallets, err := c.walletSrv.GetAll(ctx.Sender().ID)
+	wallets, err := c.walletSvc.GetAll(ctx.Sender().ID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Build response
+	var totalBalance float64
 	response := fmt.Sprintf("*Billeteras:*")
 	for _, w := range *wallets {
+		totalBalance += w.Balance
 		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
 	}
+	response = fmt.Sprintf("%s\n\nTotal: $%.2f", response, totalBalance)
 
 	err = ctx.Send(response, tg.ModeMarkdown)
 	if err != nil {
@@ -128,7 +134,7 @@ func (c *commandsController) CreateWallet(ctx tg.Context) error {
 		return err
 	}
 
-	wallet, err := c.walletSrv.Create(ctx.Sender().ID, name, balance, &timestamp, token)
+	wallet, err := c.walletSvc.Create(ctx.Sender().ID, name, balance, &timestamp, token)
 	if err, isError := err.(*jsend.Body); isError && err != nil {
 		c.errorHandlerResponse(ctx, err)
 		return err
@@ -136,6 +142,18 @@ func (c *commandsController) CreateWallet(ctx tg.Context) error {
 
 	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
 	err = ctx.Send(response, tg.ModeMarkdown)
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
+	return err
+}
+func (c *commandsController) Cancel(ctx tg.Context) error {
+	err := c.txnStatusSvc.DeleteByUserID(ctx.Sender().ID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
+
+	err = ctx.Send(defines.MessageCancel, tg.ModeMarkdown)
 	if err != nil {
 		c.errorHandler(ctx, err)
 	}
