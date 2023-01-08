@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"github.com/go-redis/redis/v9"
 	"log"
 	"loquegasto-telegram/internal/controller"
 	"loquegasto-telegram/internal/defines"
@@ -35,21 +36,29 @@ func New() *tgbot.Bot {
 
 func mapCommands() {
 	// Init rest client
-	rc := resty.New()
+	restClient := resty.New()
+	// Init redis client
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: os.Getenv(defines.EnvRedisHost),
+	})
 
 	// Init repositories
-	txnRepo := repository.NewTransactionsRepository(rc)
-	usersRepo := repository.NewUsersRepository(rc)
-	walletsRepo := repository.NewWalletsRepository(rc)
+	txnRepo := repository.NewTransactionsRepository(restClient)
+	usersRepo := repository.NewUsersRepository(restClient)
+	walletsRepo := repository.NewWalletsRepository(restClient)
+	txnStatusRepo := repository.NewTransactionStatusRepository(redisClient)
+	catRepo := repository.NewCategoriesRepository(restClient)
 
 	// Init services
-	txnSrv := service.NewTransactionsService(txnRepo)
-	usersSrv := service.NewUsersService(usersRepo)
-	walletsSrv := service.NewWalletsService(walletsRepo)
+	txnSvc := service.NewTransactionsService(txnRepo)
+	usersSvc := service.NewUsersService(usersRepo)
+	walletsSvc := service.NewWalletsService(walletsRepo)
+	txnStatusSvc := service.NewTransactionStatusService(txnStatusRepo)
+	catSvc := service.NewCategoriesService(catRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSrv, usersSrv, walletsSrv)
-	parserCtrl := controller.NewParserController(bot, txnSrv, walletsSrv)
+	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, txnStatusSvc)
+	evtCtrl := controller.NewEventsController(bot, txnSvc, txnStatusSvc, walletsSvc, catSvc)
 	//grpCtrl := controller.NewGroupsController(bot)
 
 	// Commands
@@ -57,11 +66,13 @@ func mapCommands() {
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandGetWallets, cmdCtrl.GetWallets)
 	bot.Handle(defines.CommandCreateWallet, cmdCtrl.CreateWallet)
+	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 
-	// Parser
-	bot.Handle(tgbot.OnText, parserCtrl.Parse)
-	bot.Handle(tgbot.OnEdited, parserCtrl.ParseEdited)
+	// Events
+	bot.Handle(tgbot.OnText, evtCtrl.Parse)
+	//bot.Handle(tgbot.OnEdited, evtCtrl.ParseEdited)
+	bot.Handle(tgbot.OnCallback, evtCtrl.Process)
 
 	// Group events
 	//bot.Handle(tgbot.OnAddedToGroup, grpCtrl.Start)

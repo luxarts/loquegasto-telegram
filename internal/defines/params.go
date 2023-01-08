@@ -1,6 +1,8 @@
 package defines
 
 const (
-	ParamMsgID = "msgID"
-	ParamName  = "name"
+	ParamMsgID      = "msgID"
+	ParamName       = "name"
+	ParamCategoryID = "categoryID"
+	ParamWalletID   = "walletID"
 )

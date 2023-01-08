@@ -9,5 +9,6 @@ type TransactionDTO struct {
 	Amount      float64    `json:"amount"`
 	Description string     `json:"description"`
 	WalletID    int        `json:"wallet_id"`
+	CategoryID  int        `json:"category_id"`
 	CreatedAt   *time.Time `json:"created_at"`
 }

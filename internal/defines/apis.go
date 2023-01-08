@@ -12,7 +12,9 @@ const (
 	// Wallets
 	APIWalletsCreateURL = "/wallets"
 	APIWalletsGetAllURL = "/wallets"
+	APIWalletsGetByID   = "/wallet/{" + ParamWalletID + "}"
 
-	// Auth
-	APIAuthURL = "/auth/"
+	// Categories
+	APICategoriesGetAllURL = "/categories"
+	APICategoriesGetByID   = "/category/{" + ParamCategoryID + "}"
 )
