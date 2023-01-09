@@ -46,26 +46,26 @@ func mapCommands() {
 	txnRepo := repository.NewTransactionsRepository(restClient)
 	usersRepo := repository.NewUsersRepository(restClient)
 	walletsRepo := repository.NewWalletsRepository(restClient)
-	txnStatusRepo := repository.NewTransactionStatusRepository(redisClient)
+	usrStateRepo := repository.NewUserStateRepository(redisClient)
 	catRepo := repository.NewCategoriesRepository(restClient)
 
 	// Init services
 	txnSvc := service.NewTransactionsService(txnRepo)
 	usersSvc := service.NewUsersService(usersRepo)
 	walletsSvc := service.NewWalletsService(walletsRepo)
-	txnStatusSvc := service.NewTransactionStatusService(txnStatusRepo)
+	usrStateSvc := service.NewUserStateService(usrStateRepo)
 	catSvc := service.NewCategoriesService(catRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, txnStatusSvc)
-	evtCtrl := controller.NewEventsController(bot, txnSvc, txnStatusSvc, walletsSvc, catSvc)
-	//grpCtrl := controller.NewGroupsController(bot)
+	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc)
+	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc)
 
 	// Commands
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandGetWallets, cmdCtrl.GetWallets)
 	bot.Handle(defines.CommandCreateWallet, cmdCtrl.CreateWallet)
+	bot.Handle(defines.CommandCreateCategory, cmdCtrl.CreateCategory)
 	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 
@@ -73,8 +73,4 @@ func mapCommands() {
 	bot.Handle(tgbot.OnText, evtCtrl.Parse)
 	//bot.Handle(tgbot.OnEdited, evtCtrl.ParseEdited)
 	bot.Handle(tgbot.OnCallback, evtCtrl.Process)
-
-	// Group events
-	//bot.Handle(tgbot.OnAddedToGroup, grpCtrl.Start)
-	//bot.Handle(tgbot.OnUserJoined, grpCtrl.RegisterUsers)
 }

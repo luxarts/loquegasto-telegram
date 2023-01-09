@@ -8,8 +8,8 @@ import (
 )
 
 type TransactionsService interface {
-	AddTransaction(userID int64, msgID int, amount float64, description string, walletID int, categoryID int, timestamp *time.Time) error
-	UpdateTransaction(userID int64, msgID int, amount float64, description string, walletID int) error
+	AddTransaction(userID int64, msgID int64, amount float64, description string, walletID int64, categoryID int64, timestamp *time.Time) error
+	UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID int64) error
 	GetAll(userID int64) (*[]domain.TransactionDTO, error)
 }
 
@@ -23,7 +23,7 @@ func NewTransactionsService(repo repository.TransactionsRepository) Transactions
 	}
 }
 
-func (srv *transactionsService) AddTransaction(userID int64, msgID int, amount float64, description string, walletID int, categoryID int, timestamp *time.Time) error {
+func (srv *transactionsService) AddTransaction(userID int64, msgID int64, amount float64, description string, walletID int64, categoryID int64, timestamp *time.Time) error {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
@@ -40,7 +40,7 @@ func (srv *transactionsService) AddTransaction(userID int64, msgID int, amount f
 
 	return srv.repo.Create(&transactionDTO, token)
 }
-func (srv *transactionsService) UpdateTransaction(userID int64, msgID int, amount float64, description string, walletID int) error {
+func (srv *transactionsService) UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID int64) error {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})

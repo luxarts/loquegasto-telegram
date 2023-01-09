@@ -8,6 +8,7 @@ import (
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/service"
+	"loquegasto-telegram/internal/utils/maptostruct"
 	"strconv"
 	"strings"
 )
@@ -26,26 +27,40 @@ type EventsController interface {
 	//ParseEdited(ctx tg.Context) error
 }
 type eventsController struct {
-	bot          *tg.Bot
-	txnSvc       service.TransactionsService
-	txnStatusSvc service.TransactionStatusService
-	walletsSvc   service.WalletsService
-	catSvc       service.CategoriesService
+	bot         *tg.Bot
+	txnSvc      service.TransactionsService
+	usrStateSvc service.UserStateService
+	walletsSvc  service.WalletsService
+	catSvc      service.CategoriesService
 }
 
-func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, txnStatusSvc service.TransactionStatusService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
+func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
 	return &eventsController{
-		bot:          bot,
-		txnSvc:       txnSvc,
-		txnStatusSvc: txnStatusSvc,
-		walletsSvc:   walletsSvc,
-		catSvc:       catSvc,
+		bot:         bot,
+		txnSvc:      txnSvc,
+		usrStateSvc: usrStateSvc,
+		walletsSvc:  walletsSvc,
+		catSvc:      catSvc,
 	}
 }
 
 func (c *eventsController) Parse(ctx tg.Context) error {
+	usrState, err := c.usrStateSvc.GetByUserID(ctx.Sender().ID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	// If user has a state
+	if usrState != nil {
+		err = c.processState(ctx, usrState)
+		if err != nil {
+			c.errorHandler(ctx, err)
+		}
+		return err
+	}
+
 	t := c.GetTypeFromMessage(ctx.Message())
-	var err error
 
 	switch t {
 	case messageTypeTransaction:
@@ -55,18 +70,87 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 }
 func (c *eventsController) Process(ctx tg.Context) error {
 	userID := ctx.Sender().ID
-	txnStatus, err := c.txnStatusSvc.GetByUserID(userID)
+	txnStatus, err := c.usrStateSvc.GetByUserID(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	switch txnStatus.Status {
-	case defines.StatusWalletSelection:
+	switch txnStatus.State {
+	case defines.StateCreateTransactionSelectingWallet:
 		err = c.walletSelection(ctx, txnStatus)
-	case defines.StatusCategorySelection:
+	case defines.StateCreateTransactionSelectingCategory:
 		err = c.categorySelection(ctx, txnStatus)
 	}
+
+	return err
+}
+func (c *eventsController) processState(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	switch usrState.State {
+	case defines.StateCreateCategoryWaitingName:
+		return c.createCategoryWaitingName(ctx, usrState)
+	case defines.StateCreateCategoryWaitingEmoji:
+		return c.createCategoryWaitingEmoji(ctx, usrState)
+	}
+
+	return nil
+}
+
+// States handlers
+func (c *eventsController) createCategoryWaitingName(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	categoryName := ctx.Message().Text
+
+	cat, ok := usrState.Data.(domain.CategoryDTO)
+	if !ok {
+		cat = domain.CategoryDTO{}
+	}
+	cat.Name = categoryName
+	usrState.Data = cat
+
+	// Update state
+	usrState.State = defines.StateCreateCategoryWaitingEmoji
+
+	err := c.usrStateSvc.UpdateByUserID(userID, usrState)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		defines.MessageCreateCategoryWaitingEmoji,
+		tg.ModeMarkdown,
+	)
+
+	return err
+}
+func (c *eventsController) createCategoryWaitingEmoji(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	categoryEmoji := ctx.Message().Text
+
+	var cat domain.CategoryDTO
+	err := maptostruct.Convert(usrState.Data, &cat)
+	if err != nil {
+		return err
+	}
+
+	cat.Emoji = categoryEmoji
+
+	_, err = c.catSvc.Create(userID, cat.Name, cat.Emoji)
+	if err != nil {
+		return err
+	}
+
+	err = c.usrStateSvc.DeleteByUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		fmt.Sprintf(defines.MessageCreateCategorySuccess, cat.Name, cat.Emoji),
+		tg.ModeMarkdown,
+	)
 
 	return err
 }
@@ -138,7 +222,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 	}
 
 	// Create and set status to next step: wallet selection
-	err = c.txnStatusSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StatusWalletSelection)
+	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), int64(ctx.Message().ID), defines.StateCreateTransactionSelectingWallet)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -150,7 +234,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 
 	// Respond to the user
 	err = ctx.Send(
-		"¿Con qué billetera?",
+		"¿Con qué billetera?", // TODO Mover a defines
 		&tg.SendOptions{
 			ReplyTo: ctx.Message(),
 		},
@@ -164,22 +248,30 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 
 	return nil
 }
-func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.TransactionStatusDTO) error {
-	categories, err := c.catSvc.GetAll(txnStatus.Data.UserID)
+func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	categories, err := c.catSvc.GetAll(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Update and change status to next step: category selection
-	walletID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
+	walletID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
-	txnStatus.Data.WalletID = walletID
-	txnStatus.Status = defines.StatusCategorySelection
-	err = c.txnStatusSvc.UpdateByUserID(txnStatus)
+	var txn domain.TransactionDTO
+	err = maptostruct.Convert(txnStatus.Data, &txn)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+	txn.WalletID = walletID
+	txnStatus.Data = txn
+	txnStatus.State = defines.StateCreateTransactionSelectingCategory
+	err = c.usrStateSvc.UpdateByUserID(userID, txnStatus)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -189,7 +281,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Tra
 
 	// Respond to the user
 	err = ctx.EditOrSend(
-		"¿De cuál categoría?",
+		"¿De cuál categoría?", // TODO Mover a defines
 		&tg.SendOptions{
 			ReplyTo: ctx.Message(),
 		},
@@ -203,20 +295,29 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Tra
 
 	return nil
 }
-func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.TransactionStatusDTO) error {
-	catID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-	txnStatus.Data.CategoryID = catID
+func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
 
-	cat, err := c.catSvc.GetByID(txnStatus.Data.CategoryID, txnStatus.Data.UserID)
+	var txn domain.TransactionDTO
+	err := maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
-	wal, err := c.walletsSvc.GetByID(txnStatus.Data.WalletID, txnStatus.Data.UserID)
+
+	catID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	cat, err := c.catSvc.GetByID(catID, userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	wal, err := c.walletsSvc.GetByID(txn.WalletID, userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -224,13 +325,13 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.T
 
 	// Create transaction
 	err = c.txnSvc.AddTransaction(
-		txnStatus.Data.UserID,
-		txnStatus.Data.MsgID,
-		txnStatus.Data.Amount,
-		txnStatus.Data.Description,
-		txnStatus.Data.WalletID,
-		txnStatus.Data.CategoryID,
-		txnStatus.Data.CreatedAt,
+		txn.UserID,
+		txn.MsgID,
+		txn.Amount,
+		txn.Description,
+		wal.ID,
+		cat.ID,
+		txn.CreatedAt,
 	)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -238,7 +339,7 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.T
 	}
 
 	// Delete status
-	err = c.txnStatusSvc.DeleteByUserID(txnStatus.Data.UserID)
+	err = c.usrStateSvc.DeleteByUserID(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -246,18 +347,18 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.T
 
 	var msg string
 
-	if txnStatus.Data.Amount > 0 {
+	if txn.Amount > 0 {
 		msg = fmt.Sprintf(defines.MessageAddPaymentResponse,
-			txnStatus.Data.Description,
+			txn.Description,
 			cat.Name,
-			txnStatus.Data.Amount,
+			txn.Amount,
 			wal.Name,
 		)
 	} else {
 		msg = fmt.Sprintf(defines.MessageAddMoneyResponse,
-			txnStatus.Data.Description,
+			txn.Description,
 			cat.Name,
-			txnStatus.Data.Amount,
+			txn.Amount,
 			wal.Name,
 		)
 	}
@@ -341,7 +442,7 @@ func buildWalletsKeyboard(wallets *[]domain.WalletDTO) *tg.ReplyMarkup {
 	var btns []tg.Btn
 
 	for _, w := range *wallets {
-		btns = append(btns, kb.Data(w.Name, strconv.Itoa(w.ID)))
+		btns = append(btns, kb.Data(w.Name, strconv.FormatInt(w.ID, 10)))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
@@ -354,7 +455,7 @@ func buildCategoriesKeyboard(c *[]domain.CategoryDTO) *tg.ReplyMarkup {
 	var btns []tg.Btn
 
 	for _, c := range *c {
-		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.Itoa(c.ID)))
+		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.FormatInt(c.ID, 10)))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)

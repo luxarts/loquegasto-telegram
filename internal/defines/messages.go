@@ -15,8 +15,11 @@ const (
 		"_Nota: Podés indicarme el valor sin usar el signo $._\n\n" +
 		"Los comandos disponibles son:\n" +
 		CommandHelp + " - Muestra este mensaje\n" +
+		CommandCreateWallet + " - Crea una billetera con un nombre y un monto inicial. Ej: `/crearbilletera Débito $0.00`\n" +
+		CommandCreateCategory + " - Crea una categoría\n" +
 		CommandGetWallets + " - Muestra tus billeteras"
 	MessageCancel = "❌ Operación cancelada."
+
 	// Errores
 	MessageError               = "😨 Ups! Parece que hubo un error. "
 	MessageErrorResponse       = MessageError + "\n```\n%+v\n```"
@@ -31,4 +34,9 @@ const (
 
 	// CreateWallet
 	MessageCreateWallet = "Tu billetera *%s* está lista!"
+
+	// CreateCategory
+	MessageCreateCategoryWaitingName  = "Como se va a llamar la categoría?"
+	MessageCreateCategoryWaitingEmoji = "Con qué emoji querés representar la categoría?"
+	MessageCreateCategorySuccess      = "La categoría %s (%s) está lista."
 )

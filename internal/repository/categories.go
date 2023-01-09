@@ -7,13 +7,16 @@ import (
 	"github.com/luxarts/jsend-go"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
+	"loquegasto-telegram/internal/utils/maptostruct"
+	"net/http"
 	"os"
 	"strconv"
 )
 
 type CategoriesRepository interface {
+	Create(dto *domain.CategoryDTO, token string) (*domain.CategoryDTO, error)
 	GetAll(token string) (*[]domain.CategoryDTO, error)
-	GetByID(ID int, token string) (*domain.CategoryDTO, error)
+	GetByID(ID int64, token string) (*domain.CategoryDTO, error)
 }
 
 type categoriesRepository struct {
@@ -26,6 +29,33 @@ func NewCategoriesRepository(client *resty.Client) CategoriesRepository {
 		client:  client,
 		baseURL: os.Getenv(defines.EnvBackendBaseURL),
 	}
+}
+
+func (r *categoriesRepository) Create(dto *domain.CategoryDTO, token string) (*domain.CategoryDTO, error) {
+	req := r.client.R()
+	req = req.SetBody(dto)
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesCreateURL))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	if err := json.Unmarshal(resp.Body(), &body); err != nil {
+		return nil, err
+	}
+	if resp.StatusCode() != http.StatusCreated {
+		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
+	}
+
+	var response domain.CategoryDTO
+	err = maptostruct.Convert(body.Data, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 
 func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, error) {
@@ -55,11 +85,11 @@ func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, erro
 
 	return &response, nil
 }
-func (r *categoriesRepository) GetByID(ID int, token string) (*domain.CategoryDTO, error) {
+func (r *categoriesRepository) GetByID(ID int64, token string) (*domain.CategoryDTO, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamCategoryID, strconv.Itoa(ID))
+	req = req.SetPathParam(defines.ParamCategoryID, strconv.FormatInt(ID, 10))
 	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetByID))
 	if err != nil {
 		return nil, err

@@ -17,7 +17,7 @@ import (
 type TransactionsRepository interface {
 	Create(transactionDTO *domain.TransactionDTO, token string) error
 	GetAll(token string) (*[]domain.TransactionDTO, error)
-	UpdateByMsgID(msgID int, transactionDTO *domain.TransactionDTO, token string) error
+	UpdateByMsgID(msgID int64, transactionDTO *domain.TransactionDTO, token string) error
 }
 
 type transactionsRepository struct {
@@ -86,12 +86,12 @@ func (r *transactionsRepository) GetAll(token string) (*[]domain.TransactionDTO,
 
 	return &response, nil
 }
-func (r *transactionsRepository) UpdateByMsgID(msgID int, transactionDTO *domain.TransactionDTO, token string) error {
+func (r *transactionsRepository) UpdateByMsgID(msgID int64, transactionDTO *domain.TransactionDTO, token string) error {
 	req := r.client.R()
 	req = req.SetBody(transactionDTO)
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamMsgID, strconv.Itoa(msgID))
+	req = req.SetPathParam(defines.ParamMsgID, strconv.FormatInt(msgID, 10))
 	resp, err := req.Put(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsUpdateURL))
 	if err != nil {
 		return err

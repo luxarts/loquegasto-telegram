@@ -21,24 +21,25 @@ type CommandsController interface {
 	Ping(ctx tg.Context) error
 	GetWallets(ctx tg.Context) error
 	CreateWallet(ctx tg.Context) error
+	CreateCategory(ctx tg.Context) error
 	Cancel(ctx tg.Context) error
 }
 
 type commandsController struct {
-	bot          *tg.Bot
-	txnSvc       service.TransactionsService
-	userSvc      service.UsersService
-	walletSvc    service.WalletsService
-	txnStatusSvc service.TransactionStatusService
+	bot         *tg.Bot
+	txnSvc      service.TransactionsService
+	userSvc     service.UsersService
+	walletSvc   service.WalletsService
+	usrStateSvc service.UserStateService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, txnStatusSvc service.TransactionStatusService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, usrStateSvc service.UserStateService) CommandsController {
 	return &commandsController{
-		bot:          bot,
-		txnSvc:       txnSvc,
-		userSvc:      usersSvc,
-		walletSvc:    walletSvc,
-		txnStatusSvc: txnStatusSvc,
+		bot:         bot,
+		txnSvc:      txnSvc,
+		userSvc:     usersSvc,
+		walletSvc:   walletSvc,
+		usrStateSvc: usrStateSvc,
 	}
 }
 
@@ -48,8 +49,6 @@ func (c *commandsController) Start(ctx tg.Context) error {
 	switch ctx.Chat().Type {
 	case tg.ChatPrivate:
 		err = c.startPrivate(ctx)
-	case tg.ChatGroup:
-		//err = c.startGroup(ctx)
 	}
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -79,12 +78,6 @@ func (c *commandsController) startPrivate(ctx tg.Context) error {
 	// Show onboarding message
 	return ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown)
 }
-
-/*func (c *commandsController) startGroup(ctx tg.Context) error {
-	// Show onboarding message
-	c.botRespond(ctx, fmt.Sprintf("@%s registrado.", ctx.Sender().Username))
-	return nil
-}*/
 
 func (c *commandsController) Help(ctx tg.Context) error {
 	err := ctx.Send(defines.MessageHelp, tg.ModeMarkdown)
@@ -147,8 +140,25 @@ func (c *commandsController) CreateWallet(ctx tg.Context) error {
 	}
 	return err
 }
+func (c *commandsController) CreateCategory(ctx tg.Context) error {
+	err := c.usrStateSvc.SetState(ctx.Sender().ID, defines.StateCreateCategoryWaitingName)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	err = ctx.Send(
+		defines.MessageCreateCategoryWaitingName,
+		tg.ModeMarkdown,
+	)
+
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
+	return err
+}
 func (c *commandsController) Cancel(ctx tg.Context) error {
-	err := c.txnStatusSvc.DeleteByUserID(ctx.Sender().ID)
+	err := c.usrStateSvc.DeleteByUserID(ctx.Sender().ID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 	}

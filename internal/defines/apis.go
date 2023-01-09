@@ -15,6 +15,7 @@ const (
 	APIWalletsGetByID   = "/wallet/{" + ParamWalletID + "}"
 
 	// Categories
+	APICategoriesCreateURL = "/categories"
 	APICategoriesGetAllURL = "/categories"
 	APICategoriesGetByID   = "/category/{" + ParamCategoryID + "}"
 )
