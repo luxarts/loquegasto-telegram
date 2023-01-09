@@ -9,4 +9,5 @@ const (
 	CommandCreateWallet   = "/crearbilletera"
 	CommandCreateCategory = "/crearcategoria"
 	CommandCancel         = "/cancelar"
+	CommandExport         = "/exportar"
 )

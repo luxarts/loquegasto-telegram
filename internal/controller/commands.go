@@ -19,6 +19,7 @@ type CommandsController interface {
 	CreateWallet(ctx tg.Context) error
 	CreateCategory(ctx tg.Context) error
 	Cancel(ctx tg.Context) error
+	Export(ctx tg.Context) error
 }
 
 type commandsController struct {
@@ -27,15 +28,19 @@ type commandsController struct {
 	userSvc     service.UsersService
 	walletSvc   service.WalletsService
 	usrStateSvc service.UserStateService
+	exporterSvc service.ExporterService
+	catSvc      service.CategoriesService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, usrStateSvc service.UserStateService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, usrStateSvc service.UserStateService, exporterSvc service.ExporterService, catSvc service.CategoriesService) CommandsController {
 	return &commandsController{
 		bot:         bot,
 		txnSvc:      txnSvc,
 		userSvc:     usersSvc,
 		walletSvc:   walletSvc,
 		usrStateSvc: usrStateSvc,
+		exporterSvc: exporterSvc,
+		catSvc:      catSvc,
 	}
 }
 
@@ -154,6 +159,68 @@ func (c *commandsController) Cancel(ctx tg.Context) error {
 	if err != nil {
 		c.errorHandler(ctx, err)
 	}
+	return err
+}
+func (c *commandsController) Export(ctx tg.Context) error {
+	userID := ctx.Sender().ID
+
+	txns, err := c.txnSvc.GetAll(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	err = c.exporterSvc.Create(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	// Delete file always at the end
+	defer func() {
+		err := c.exporterSvc.Delete(userID)
+		if err != nil {
+			c.errorHandler(ctx, err)
+		}
+	}()
+
+	for _, txn := range *txns {
+		wal, err := c.walletSvc.GetByID(txn.WalletID, userID)
+		if err != nil {
+			c.errorHandler(ctx, err)
+			return err
+		}
+		cat, err := c.catSvc.GetByID(txn.CategoryID, userID)
+		if err != nil {
+			c.errorHandler(ctx, err)
+			return err
+		}
+
+		err = c.exporterSvc.AddEntry(
+			txn.ID,
+			txn.Amount,
+			txn.Description,
+			wal.Name,
+			cat.Name,
+			txn.CreatedAt,
+			userID,
+		)
+		if err != nil {
+			c.errorHandler(ctx, err)
+			return err
+		}
+	}
+
+	err = ctx.Send(&tg.Document{
+		File: tg.File{
+			FileLocal: c.exporterSvc.GetFile(userID),
+		},
+		FileName: fmt.Sprintf("lqg-reporte-%s.csv", ctx.Message().Time().Format("2006-01-02")),
+	})
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
+
 	return err
 }
 

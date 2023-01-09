@@ -48,6 +48,7 @@ func mapCommands() {
 	walletsRepo := repository.NewWalletsRepository(restClient)
 	usrStateRepo := repository.NewUserStateRepository(redisClient)
 	catRepo := repository.NewCategoriesRepository(restClient)
+	exporterRepo := repository.NewExporterRepository(os.Getenv(defines.EnvExporterFilePath))
 
 	// Init services
 	txnSvc := service.NewTransactionsService(txnRepo)
@@ -55,9 +56,10 @@ func mapCommands() {
 	walletsSvc := service.NewWalletsService(walletsRepo)
 	usrStateSvc := service.NewUserStateService(usrStateRepo)
 	catSvc := service.NewCategoriesService(catRepo)
+	exporterSvc := service.NewExporterService(exporterRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc)
+	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc, exporterSvc, catSvc)
 	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc)
 
 	// Commands
@@ -68,6 +70,7 @@ func mapCommands() {
 	bot.Handle(defines.CommandCreateCategory, cmdCtrl.CreateCategory)
 	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
+	bot.Handle(defines.CommandExport, cmdCtrl.Export)
 
 	// Events
 	bot.Handle(tgbot.OnText, evtCtrl.Parse)
