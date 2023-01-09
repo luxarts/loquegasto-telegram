@@ -3,5 +3,7 @@ package defines
 const (
 	StateCreateTransactionSelectingWallet   = "CreateTransaction:SelectingWallet"
 	StateCreateTransactionSelectingCategory = "CreateTransaction:SelectingCategory"
-	StateCreateCategoryWaitingName          = "CreateCategory:WaitingName"
+
+	StateCreateCategoryWaitingName  = "CreateCategory:WaitingName"
+	StateCreateCategoryWaitingEmoji = "CreateCategory:WaitingEmoji"
 )

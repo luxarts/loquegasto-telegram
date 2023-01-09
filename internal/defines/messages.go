@@ -35,5 +35,5 @@ const (
 	// CreateCategory
 	MessageCreateCategoryWaitingName  = "Como se va a llamar la categoría?"
 	MessageCreateCategoryWaitingEmoji = "Con qué emoji querés representar la categoría?"
-	MessageCreateCategory
+	MessageCreateCategorySuccess      = "La categoría %s (%s) está lista."
 )

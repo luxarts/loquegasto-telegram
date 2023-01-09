@@ -31,7 +31,7 @@ func (r *userStateRepository) Create(dto *domain.UserStateDTO) error {
 	}
 
 	ctx := context.Background()
-	return r.rc.Set(ctx, strconv.FormatInt(dto.Data.UserID, 10), string(dtoBytes), 0).Err()
+	return r.rc.Set(ctx, strconv.FormatInt(dto.Data.(domain.TransactionDTO).UserID, 10), string(dtoBytes), 0).Err()
 }
 func (r *userStateRepository) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	uID := strconv.FormatInt(userID, 10)

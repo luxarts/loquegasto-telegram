@@ -10,7 +10,7 @@ type UserStateService interface {
 	SetState(userID int64, state string) error
 	Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error
 	GetByUserID(userID int64) (*domain.UserStateDTO, error)
-	UpdateByUserID(dto *domain.UserStateDTO) error
+	UpdateByUserID(userID int64, dto *domain.UserStateDTO) error
 	DeleteByUserID(userID int64) error
 }
 
@@ -54,8 +54,8 @@ func (s *userStateService) Create(userID int64, amount float64, description stri
 func (s *userStateService) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	return s.repo.GetByUserID(userID)
 }
-func (s *userStateService) UpdateByUserID(dto *domain.UserStateDTO) error {
-	return s.repo.UpdateByUserID(dto.Data.UserID, dto)
+func (s *userStateService) UpdateByUserID(userID int64, dto *domain.UserStateDTO) error {
+	return s.repo.UpdateByUserID(userID, dto)
 }
 func (s *userStateService) DeleteByUserID(userID int64) error {
 	return s.repo.DeleteByUserID(userID)

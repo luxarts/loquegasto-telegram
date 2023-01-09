@@ -8,6 +8,7 @@ import (
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/service"
+	"loquegasto-telegram/internal/utils/maptostruct"
 	"strconv"
 	"strings"
 )
@@ -44,8 +45,22 @@ func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrSta
 }
 
 func (c *eventsController) Parse(ctx tg.Context) error {
+	usrState, err := c.usrStateSvc.GetByUserID(ctx.Sender().ID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	// If user has a state
+	if usrState != nil {
+		err = c.processState(ctx, usrState)
+		if err != nil {
+			c.errorHandler(ctx, err)
+		}
+		return err
+	}
+
 	t := c.GetTypeFromMessage(ctx.Message())
-	var err error
 
 	switch t {
 	case messageTypeTransaction:
@@ -67,6 +82,75 @@ func (c *eventsController) Process(ctx tg.Context) error {
 	case defines.StateCreateTransactionSelectingCategory:
 		err = c.categorySelection(ctx, txnStatus)
 	}
+
+	return err
+}
+func (c *eventsController) processState(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	switch usrState.State {
+	case defines.StateCreateCategoryWaitingName:
+		return c.createCategoryWaitingName(ctx, usrState)
+	case defines.StateCreateCategoryWaitingEmoji:
+		return c.createCategoryWaitingEmoji(ctx, usrState)
+	}
+
+	return nil
+}
+
+// States handlers
+func (c *eventsController) createCategoryWaitingName(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	categoryName := ctx.Message().Text
+
+	cat, ok := usrState.Data.(domain.CategoryDTO)
+	if !ok {
+		cat = domain.CategoryDTO{}
+	}
+	cat.Name = categoryName
+	usrState.Data = cat
+
+	// Update state
+	usrState.State = defines.StateCreateCategoryWaitingEmoji
+
+	err := c.usrStateSvc.UpdateByUserID(userID, usrState)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		defines.MessageCreateCategoryWaitingEmoji,
+		tg.ModeMarkdown,
+	)
+
+	return err
+}
+func (c *eventsController) createCategoryWaitingEmoji(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	categoryEmoji := ctx.Message().Text
+
+	var cat domain.CategoryDTO
+	err := maptostruct.Convert(usrState.Data, &cat)
+	if err != nil {
+		return err
+	}
+
+	cat.Emoji = categoryEmoji
+
+	_, err = c.catSvc.Create(userID, cat.Name, cat.Emoji)
+	if err != nil {
+		return err
+	}
+
+	err = c.usrStateSvc.DeleteByUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		fmt.Sprintf(defines.MessageCreateCategorySuccess, cat.Name, cat.Emoji),
+		tg.ModeMarkdown,
+	)
 
 	return err
 }
@@ -165,7 +249,8 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 	return nil
 }
 func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
-	categories, err := c.catSvc.GetAll(txnStatus.Data.UserID)
+	userID := ctx.Sender().ID
+	categories, err := c.catSvc.GetAll(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -177,9 +262,16 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 		c.errorHandler(ctx, err)
 		return err
 	}
-	txnStatus.Data.WalletID = walletID
+	var txn domain.TransactionDTO
+	err = maptostruct.Convert(txnStatus.Data, &txn)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+	txn.WalletID = walletID
+	txnStatus.Data = txn
 	txnStatus.State = defines.StateCreateTransactionSelectingCategory
-	err = c.usrStateSvc.UpdateByUserID(txnStatus)
+	err = c.usrStateSvc.UpdateByUserID(userID, txnStatus)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -204,19 +296,28 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 	return nil
 }
 func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+
+	var txn domain.TransactionDTO
+	err := maptostruct.Convert(txnStatus.Data, &txn)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
 	catID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
-	txnStatus.Data.CategoryID = catID
 
-	cat, err := c.catSvc.GetByID(txnStatus.Data.CategoryID, txnStatus.Data.UserID)
+	cat, err := c.catSvc.GetByID(catID, userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
-	wal, err := c.walletsSvc.GetByID(txnStatus.Data.WalletID, txnStatus.Data.UserID)
+
+	wal, err := c.walletsSvc.GetByID(txn.WalletID, userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -224,13 +325,13 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 
 	// Create transaction
 	err = c.txnSvc.AddTransaction(
-		txnStatus.Data.UserID,
-		txnStatus.Data.MsgID,
-		txnStatus.Data.Amount,
-		txnStatus.Data.Description,
-		txnStatus.Data.WalletID,
-		txnStatus.Data.CategoryID,
-		txnStatus.Data.CreatedAt,
+		txn.UserID,
+		txn.MsgID,
+		txn.Amount,
+		txn.Description,
+		wal.ID,
+		cat.ID,
+		txn.CreatedAt,
 	)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -238,7 +339,7 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 	}
 
 	// Delete status
-	err = c.usrStateSvc.DeleteByUserID(txnStatus.Data.UserID)
+	err = c.usrStateSvc.DeleteByUserID(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -246,18 +347,18 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 
 	var msg string
 
-	if txnStatus.Data.Amount > 0 {
+	if txn.Amount > 0 {
 		msg = fmt.Sprintf(defines.MessageAddPaymentResponse,
-			txnStatus.Data.Description,
+			txn.Description,
 			cat.Name,
-			txnStatus.Data.Amount,
+			txn.Amount,
 			wal.Name,
 		)
 	} else {
 		msg = fmt.Sprintf(defines.MessageAddMoneyResponse,
-			txnStatus.Data.Description,
+			txn.Description,
 			cat.Name,
-			txnStatus.Data.Amount,
+			txn.Amount,
 			wal.Name,
 		)
 	}
