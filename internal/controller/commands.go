@@ -1,14 +1,11 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
 	"loquegasto-telegram/internal/utils/jwt"
-	"strconv"
-	"strings"
 	"time"
 
 	tg "gopkg.in/telebot.v3"
@@ -77,7 +74,6 @@ func (c *commandsController) startPrivate(ctx tg.Context) error {
 	// Show onboarding message
 	return ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown)
 }
-
 func (c *commandsController) Help(ctx tg.Context) error {
 	err := ctx.Send(defines.MessageHelp, tg.ModeMarkdown)
 	if err != nil {
@@ -162,30 +158,6 @@ func (c *commandsController) Cancel(ctx tg.Context) error {
 }
 
 // Utils
-func (c *commandsController) getWalletNameAndBalance(text string) (name string, balance float64, err error) {
-	result := defines.RegexCreateWallet.FindAllStringSubmatch(text, -1)
-
-	// Validate results
-	if len(result) != 1 {
-		err = errors.New("invalid syntax")
-		return
-	}
-
-	// Name capture group 1
-	name = result[0][1]
-
-	// Balance capture group 2
-	balanceStr := result[0][2]
-
-	// Parse decimal as dot for internal usage and colon for response
-	balanceStr = strings.Replace(balanceStr, ",", ".", 1)
-	balance, err = strconv.ParseFloat(balanceStr, 64)
-	if err != nil {
-		return
-	}
-
-	return
-}
 func (c *commandsController) errorHandler(ctx tg.Context, err error) {
 	log.Println(err)
 	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)
