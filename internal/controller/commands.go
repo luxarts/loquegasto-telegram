@@ -57,20 +57,44 @@ func (c *commandsController) Start(ctx tg.Context) error {
 	return err
 }
 func (c *commandsController) startPrivate(ctx tg.Context) error {
+	userID := ctx.Sender().ID
+
 	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: ctx.Sender().ID,
+		Subject: userID,
 	})
 	ts := time.Unix(ctx.Message().Unixtime, 0)
 
 	// Create user
-	err := c.userSvc.Create(ctx.Sender().ID, &ts, ctx.Chat().ID, token)
+	err := c.userSvc.Create(userID, &ts, ctx.Chat().ID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Crear wallet
-	_, err = c.walletSvc.Create(ctx.Sender().ID, defines.DefaultWalletName, 0, &ts)
+	_, err = c.walletSvc.Create(userID, defines.DefaultWalletName, 0, &ts)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	// Crear categorías
+	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameOthers, defines.DefaultCategoryEmojiOthers)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameHouse, defines.DefaultCategoryEmojiHouse)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameFood, defines.DefaultCategoryEmojiFood)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameOutings, defines.DefaultCategoryEmojiOutings)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
