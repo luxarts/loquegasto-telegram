@@ -65,6 +65,7 @@ func mapCommands() {
 	bot.Handle(defines.CommandHelp, cmdCtrl.Help)
 	bot.Handle(defines.CommandGetWallets, cmdCtrl.GetWallets)
 	bot.Handle(defines.CommandCreateWallet, cmdCtrl.CreateWallet)
+	bot.Handle(defines.CommandCreateCategory, cmdCtrl.CreateCategory)
 	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 

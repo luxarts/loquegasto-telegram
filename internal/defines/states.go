@@ -1,6 +1,7 @@
 package defines
 
 const (
-	StateWalletSelection   = "WALLET_SELECTION"
-	StateCategorySelection = "CATEGORY_SELECTION"
+	StateCreateTransactionSelectingWallet   = "CreateTransaction:SelectingWallet"
+	StateCreateTransactionSelectingCategory = "CreateTransaction:SelectingCategory"
+	StateCreateCategoryWaitingName          = "CreateCategory:WaitingName"
 )

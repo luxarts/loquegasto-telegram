@@ -61,10 +61,10 @@ func (c *eventsController) Process(ctx tg.Context) error {
 		return err
 	}
 
-	switch txnStatus.Status {
-	case defines.StateWalletSelection:
+	switch txnStatus.State {
+	case defines.StateCreateTransactionSelectingWallet:
 		err = c.walletSelection(ctx, txnStatus)
-	case defines.StateCategorySelection:
+	case defines.StateCreateTransactionSelectingCategory:
 		err = c.categorySelection(ctx, txnStatus)
 	}
 
@@ -138,7 +138,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 	}
 
 	// Create and set status to next step: wallet selection
-	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StateWalletSelection)
+	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StateCreateTransactionSelectingWallet)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -150,7 +150,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 
 	// Respond to the user
 	err = ctx.Send(
-		"¿Con qué billetera?",
+		"¿Con qué billetera?", // TODO Mover a defines
 		&tg.SendOptions{
 			ReplyTo: ctx.Message(),
 		},
@@ -178,7 +178,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 		return err
 	}
 	txnStatus.Data.WalletID = walletID
-	txnStatus.Status = defines.StateCategorySelection
+	txnStatus.State = defines.StateCreateTransactionSelectingCategory
 	err = c.usrStateSvc.UpdateByUserID(txnStatus)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -189,7 +189,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 
 	// Respond to the user
 	err = ctx.EditOrSend(
-		"¿De cuál categoría?",
+		"¿De cuál categoría?", // TODO Mover a defines
 		&tg.SendOptions{
 			ReplyTo: ctx.Message(),
 		},

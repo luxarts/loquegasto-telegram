@@ -7,6 +7,7 @@ import (
 )
 
 type UserStateService interface {
+	SetState(userID int64, state string) error
 	Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error
 	GetByUserID(userID int64) (*domain.UserStateDTO, error)
 	UpdateByUserID(dto *domain.UserStateDTO) error
@@ -21,9 +22,25 @@ func NewUserStateService(repo repository.UserStateRepository) UserStateService {
 	return &userStateService{repo: repo}
 }
 
+func (s *userStateService) SetState(userID int64, state string) error {
+	usrStateDTO, err := s.repo.GetByUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	// If not exists, create a new key with state
+	if usrStateDTO == nil {
+		usrStateDTO = &domain.UserStateDTO{}
+	}
+
+	usrStateDTO.State = state
+
+	return s.repo.UpdateByUserID(userID, usrStateDTO)
+}
+
 func (s *userStateService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error {
 	dto := &domain.UserStateDTO{
-		Status: status,
+		State: status,
 		Data: domain.TransactionDTO{
 			MsgID:       msgID,
 			UserID:      userID,
@@ -38,7 +55,7 @@ func (s *userStateService) GetByUserID(userID int64) (*domain.UserStateDTO, erro
 	return s.repo.GetByUserID(userID)
 }
 func (s *userStateService) UpdateByUserID(dto *domain.UserStateDTO) error {
-	return s.repo.UpdateByUserID(dto)
+	return s.repo.UpdateByUserID(dto.Data.UserID, dto)
 }
 func (s *userStateService) DeleteByUserID(userID int64) error {
 	return s.repo.DeleteByUserID(userID)

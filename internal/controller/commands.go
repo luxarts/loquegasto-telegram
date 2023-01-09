@@ -21,6 +21,7 @@ type CommandsController interface {
 	Ping(ctx tg.Context) error
 	GetWallets(ctx tg.Context) error
 	CreateWallet(ctx tg.Context) error
+	CreateCategory(ctx tg.Context) error
 	Cancel(ctx tg.Context) error
 }
 
@@ -134,6 +135,23 @@ func (c *commandsController) CreateWallet(ctx tg.Context) error {
 
 	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
 	err = ctx.Send(response, tg.ModeMarkdown)
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
+	return err
+}
+func (c *commandsController) CreateCategory(ctx tg.Context) error {
+	err := c.usrStateSvc.SetState(ctx.Sender().ID, defines.StateCreateCategoryWaitingName)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	err = ctx.Send(
+		defines.MessageCreateCategoryWaitingName,
+		tg.ModeMarkdown,
+	)
+
 	if err != nil {
 		c.errorHandler(ctx, err)
 	}

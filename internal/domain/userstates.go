@@ -1,6 +1,6 @@
 package domain
 
 type UserStateDTO struct {
-	Status string         `json:"status"`
-	Data   TransactionDTO `json:"data"`
+	State string         `json:"state"`
+	Data  TransactionDTO `json:"data"`
 }

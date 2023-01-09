@@ -31,4 +31,9 @@ const (
 
 	// CreateWallet
 	MessageCreateWallet = "Tu billetera *%s* está lista!"
+
+	// CreateCategory
+	MessageCreateCategoryWaitingName  = "Como se va a llamar la categoría?"
+	MessageCreateCategoryWaitingEmoji = "Con qué emoji querés representar la categoría?"
+	MessageCreateCategory
 )
