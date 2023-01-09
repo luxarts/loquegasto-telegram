@@ -11,6 +11,7 @@ import (
 	"loquegasto-telegram/internal/utils/maptostruct"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -91,6 +92,10 @@ func (c *eventsController) processState(ctx tg.Context, usrState *domain.UserSta
 		return c.createCategoryWaitingName(ctx, usrState)
 	case defines.StateCreateCategoryWaitingEmoji:
 		return c.createCategoryWaitingEmoji(ctx, usrState)
+	case defines.StateCreateWalletWaitingName:
+		return c.createWalletWaitingName(ctx, usrState)
+	case defines.StateCreateWalletWaitingAmount:
+		return c.createWalletWaitingAmount(ctx, usrState)
 	}
 
 	return nil
@@ -149,6 +154,71 @@ func (c *eventsController) createCategoryWaitingEmoji(ctx tg.Context, usrState *
 	// Respond to the user
 	err = ctx.Send(
 		fmt.Sprintf(defines.MessageCreateCategorySuccess, cat.Name, cat.Emoji),
+		tg.ModeMarkdown,
+	)
+
+	return err
+}
+func (c *eventsController) createWalletWaitingName(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	walletName := ctx.Message().Text
+
+	w, ok := usrState.Data.(domain.WalletDTO)
+	if !ok {
+		w = domain.WalletDTO{}
+	}
+	w.Name = walletName
+	usrState.Data = w
+
+	// Update state
+	usrState.State = defines.StateCreateWalletWaitingAmount
+
+	err := c.usrStateSvc.UpdateByUserID(userID, usrState)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		defines.MessageCreateWalletWaitingAmount,
+		tg.ModeMarkdown,
+	)
+
+	return err
+}
+func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *domain.UserStateDTO) error {
+	userID := ctx.Sender().ID
+	balanceStr := ctx.Message().Text
+	balanceStr = strings.Replace(balanceStr, "$", "", 1)
+	balanceStr = strings.Replace(balanceStr, ",", ".", 1)
+	balance, err := strconv.ParseFloat(balanceStr, 64)
+	if err != nil {
+		return err
+	}
+
+	var w domain.WalletDTO
+	err = maptostruct.Convert(usrState.Data, &w)
+	if err != nil {
+		return err
+	}
+
+	createdAt := time.Unix(ctx.Message().Unixtime, 0)
+
+	w.Balance = balance
+
+	_, err = c.walletsSvc.Create(userID, w.Name, w.Balance, &createdAt)
+	if err != nil {
+		return err
+	}
+
+	err = c.usrStateSvc.DeleteByUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Respond to the user
+	err = ctx.Send(
+		fmt.Sprintf(defines.MessageCreateWalletSuccess, w.Name),
 		tg.ModeMarkdown,
 	)
 
