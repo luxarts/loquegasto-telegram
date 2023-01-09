@@ -8,7 +8,7 @@ import (
 
 type UserStateService interface {
 	SetState(userID int64, state string) error
-	Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error
+	Create(userID int64, amount float64, description string, createdAt time.Time, msgID int64, status string) error
 	GetByUserID(userID int64) (*domain.UserStateDTO, error)
 	UpdateByUserID(userID int64, dto *domain.UserStateDTO) error
 	DeleteByUserID(userID int64) error
@@ -38,7 +38,7 @@ func (s *userStateService) SetState(userID int64, state string) error {
 	return s.repo.UpdateByUserID(userID, usrStateDTO)
 }
 
-func (s *userStateService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int, status string) error {
+func (s *userStateService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int64, status string) error {
 	dto := &domain.UserStateDTO{
 		State: status,
 		Data: domain.TransactionDTO{

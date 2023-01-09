@@ -16,7 +16,7 @@ import (
 type CategoriesRepository interface {
 	Create(dto *domain.CategoryDTO, token string) (*domain.CategoryDTO, error)
 	GetAll(token string) (*[]domain.CategoryDTO, error)
-	GetByID(ID int, token string) (*domain.CategoryDTO, error)
+	GetByID(ID int64, token string) (*domain.CategoryDTO, error)
 }
 
 type categoriesRepository struct {
@@ -85,11 +85,11 @@ func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, erro
 
 	return &response, nil
 }
-func (r *categoriesRepository) GetByID(ID int, token string) (*domain.CategoryDTO, error) {
+func (r *categoriesRepository) GetByID(ID int64, token string) (*domain.CategoryDTO, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamCategoryID, strconv.Itoa(ID))
+	req = req.SetPathParam(defines.ParamCategoryID, strconv.FormatInt(ID, 10))
 	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetByID))
 	if err != nil {
 		return nil, err

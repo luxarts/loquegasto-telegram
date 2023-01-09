@@ -222,7 +222,7 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 	}
 
 	// Create and set status to next step: wallet selection
-	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), ctx.Message().ID, defines.StateCreateTransactionSelectingWallet)
+	err = c.usrStateSvc.Create(userID, amount, description, ctx.Message().Time(), int64(ctx.Message().ID), defines.StateCreateTransactionSelectingWallet)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -257,7 +257,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 	}
 
 	// Update and change status to next step: category selection
-	walletID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
+	walletID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -305,7 +305,7 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 		return err
 	}
 
-	catID, err := strconv.Atoi(strings.Replace(ctx.Callback().Data, "\f", "", 1))
+	catID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -442,7 +442,7 @@ func buildWalletsKeyboard(wallets *[]domain.WalletDTO) *tg.ReplyMarkup {
 	var btns []tg.Btn
 
 	for _, w := range *wallets {
-		btns = append(btns, kb.Data(w.Name, strconv.Itoa(w.ID)))
+		btns = append(btns, kb.Data(w.Name, strconv.FormatInt(w.ID, 10)))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
@@ -455,7 +455,7 @@ func buildCategoriesKeyboard(c *[]domain.CategoryDTO) *tg.ReplyMarkup {
 	var btns []tg.Btn
 
 	for _, c := range *c {
-		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.Itoa(c.ID)))
+		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.FormatInt(c.ID, 10)))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)

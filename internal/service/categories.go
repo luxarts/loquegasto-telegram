@@ -8,7 +8,7 @@ import (
 
 type CategoriesService interface {
 	GetAll(userID int64) (*[]domain.CategoryDTO, error)
-	GetByID(ID int, userID int64) (*domain.CategoryDTO, error)
+	GetByID(ID int64, userID int64) (*domain.CategoryDTO, error)
 	Create(userID int64, name string, emoji string) (*domain.CategoryDTO, error)
 }
 type categoriesService struct {
@@ -26,7 +26,7 @@ func (s *categoriesService) GetAll(userID int64) (*[]domain.CategoryDTO, error) 
 
 	return s.repo.GetAll(token)
 }
-func (s *categoriesService) GetByID(ID int, userID int64) (*domain.CategoryDTO, error) {
+func (s *categoriesService) GetByID(ID int64, userID int64) (*domain.CategoryDTO, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})

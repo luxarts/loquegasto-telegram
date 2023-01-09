@@ -21,7 +21,7 @@ type WalletsRepository interface {
 	Create(transactionDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error)
 	GetAll(token string) (*[]domain.WalletDTO, error)
 	GetByName(name string, token string) (*domain.WalletDTO, error)
-	GetByID(ID int, token string) (*domain.WalletDTO, error)
+	GetByID(ID int64, token string) (*domain.WalletDTO, error)
 }
 
 type walletsRepository struct {
@@ -122,11 +122,11 @@ func (r *walletsRepository) GetByName(name string, token string) (*domain.Wallet
 
 	return &response, nil
 }
-func (r *walletsRepository) GetByID(ID int, token string) (*domain.WalletDTO, error) {
+func (r *walletsRepository) GetByID(ID int64, token string) (*domain.WalletDTO, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamWalletID, strconv.Itoa(ID))
+	req = req.SetPathParam(defines.ParamWalletID, strconv.FormatInt(ID, 10))
 	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetByID))
 	if err != nil {
 		return nil, err

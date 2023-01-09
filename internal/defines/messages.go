@@ -15,7 +15,7 @@ const (
 		"_Nota: Podés indicarme el valor sin usar el signo $._\n\n" +
 		"Los comandos disponibles son:\n" +
 		CommandHelp + " - Muestra este mensaje\n" +
-		CommandCreateWallet + " - Crea una billetera con un nombre y un monto inicial. Ej: `/crearbilletera Débito $0.00\n" +
+		CommandCreateWallet + " - Crea una billetera con un nombre y un monto inicial. Ej: `/crearbilletera Débito $0.00`\n" +
 		CommandCreateCategory + " - Crea una categoría\n" +
 		CommandGetWallets + " - Muestra tus billeteras"
 	MessageCancel = "❌ Operación cancelada."
