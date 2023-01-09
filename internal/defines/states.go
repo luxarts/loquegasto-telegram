@@ -6,4 +6,7 @@ const (
 
 	StateCreateCategoryWaitingName  = "CreateCategory:WaitingName"
 	StateCreateCategoryWaitingEmoji = "CreateCategory:WaitingEmoji"
+
+	StateCreateWalletWaitingName   = "CreateWallet:WaitingName"
+	StateCreateWalletWaitingAmount = "CreateWallet:WaitingAmount"
 )

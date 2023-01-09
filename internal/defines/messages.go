@@ -33,10 +33,12 @@ const (
 	MesssageUpdatePaymentResponse = "Listo, ya modifiqué la transacción."
 
 	// CreateWallet
-	MessageCreateWallet = "Tu billetera *%s* está lista!"
+	MessageCreateWalletWaitingName   = "¿Como se va a llamar la billetera?"
+	MessageCreateWalletWaitingAmount = "¿Cuál es el monto inicial de la billetera?"
+	MessageCreateWalletSuccess       = "¡Tu billetera *%s* está lista!"
 
 	// CreateCategory
-	MessageCreateCategoryWaitingName  = "Como se va a llamar la categoría?"
-	MessageCreateCategoryWaitingEmoji = "Con qué emoji querés representar la categoría?"
-	MessageCreateCategorySuccess      = "La categoría %s (%s) está lista."
+	MessageCreateCategoryWaitingName  = "¿Como se va a llamar la categoría?"
+	MessageCreateCategoryWaitingEmoji = "¿Con qué emoji querés representar la categoría?"
+	MessageCreateCategorySuccess      = "¡La categoría %s (%s) está lista!"
 )

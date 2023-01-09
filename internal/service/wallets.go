@@ -8,7 +8,7 @@ import (
 )
 
 type WalletsService interface {
-	Create(userID int64, name string, balance float64, timestamp *time.Time, token string) (*domain.WalletDTO, error)
+	Create(userID int64, name string, balance float64, timestamp *time.Time) (*domain.WalletDTO, error)
 	GetAll(userID int64) (*[]domain.WalletDTO, error)
 	GetByName(name string, userID int64) (*domain.WalletDTO, error)
 	GetByID(ID int64, userID int64) (*domain.WalletDTO, error)
@@ -22,7 +22,10 @@ func NewWalletsService(repo repository.WalletsRepository) WalletsService {
 		repo: repo,
 	}
 }
-func (s *walletsService) Create(userID int64, name string, balance float64, timestamp *time.Time, token string) (*domain.WalletDTO, error) {
+func (s *walletsService) Create(userID int64, name string, balance float64, timestamp *time.Time) (*domain.WalletDTO, error) {
+	token := jwt.GenerateToken(nil, &jwt.Payload{
+		Subject: userID,
+	})
 	walletDTO := domain.WalletDTO{
 		UserID:    userID,
 		Name:      name,

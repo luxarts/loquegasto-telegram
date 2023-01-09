@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"github.com/luxarts/jsend-go"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
@@ -69,7 +68,7 @@ func (c *commandsController) startPrivate(ctx tg.Context) error {
 	}
 
 	// Crear wallet
-	_, err = c.walletSvc.Create(ctx.Sender().ID, defines.DefaultWalletName, 0, &ts, token)
+	_, err = c.walletSvc.Create(ctx.Sender().ID, defines.DefaultWalletName, 0, &ts)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -116,25 +115,17 @@ func (c *commandsController) GetWallets(ctx tg.Context) error {
 	return err
 }
 func (c *commandsController) CreateWallet(ctx tg.Context) error {
-	timestamp := time.Unix(ctx.Message().Unixtime, 0)
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: ctx.Sender().ID,
-	})
-
-	name, balance, err := c.getWalletNameAndBalance(ctx.Message().Payload)
+	err := c.usrStateSvc.SetState(ctx.Sender().ID, defines.StateCreateWalletWaitingName)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	wallet, err := c.walletSvc.Create(ctx.Sender().ID, name, balance, &timestamp, token)
-	if err, isError := err.(*jsend.Body); isError && err != nil {
-		c.errorHandlerResponse(ctx, err)
-		return err
-	}
+	err = ctx.Send(
+		defines.MessageCreateWalletWaitingName,
+		tg.ModeMarkdown,
+	)
 
-	response := fmt.Sprintf(defines.MessageCreateWallet, wallet.Name)
-	err = ctx.Send(response, tg.ModeMarkdown)
 	if err != nil {
 		c.errorHandler(ctx, err)
 	}
