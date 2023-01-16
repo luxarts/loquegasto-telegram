@@ -25,6 +25,7 @@ type exporterRepository struct {
 
 func NewExporterRepository(filePath string) ExporterRepository {
 	// Create directory if not exists
+	filePath = filepath.Join(os.TempDir(), filePath)
 	err := os.MkdirAll(filePath, os.ModeDir|os.ModePerm)
 	if err != nil {
 		log.Fatalln(err)
