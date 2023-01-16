@@ -1,13 +1,30 @@
-FROM golang:alpine AS builder
+# Build
+FROM golang:alpine AS build
 
-RUN mkdir /build
+# Destination of copy
 WORKDIR /build
-COPY . .
-RUN go build -o output ./cmd/main.go
 
+# Download dependencies
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . ./
+
+# Build
+RUN go build -o bin ./cmd/main.go
+
+# Deploy
 FROM alpine
-RUN adduser -S -D -H -h /app appuser # System user, no password, no home dir,
+
+RUN adduser -S -D -H -h /app appuser
 USER appuser
-COPY --from=builder /build/output /app/
+
+COPY --from=build /build/bin /app/
+
 WORKDIR /app
-CMD ["./output"]
+
+EXPOSE 8080
+
+CMD ["./bin"]
