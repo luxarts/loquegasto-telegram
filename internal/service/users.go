@@ -20,10 +20,11 @@ func NewUsersService(repo repository.UsersRepository) UsersService {
 }
 func (s *usersService) Create(userID int64, timestamp *time.Time, chatID int64, token string) error {
 	userDTO := domain.UserDTO{
-		ID:        userID,
-		CreatedAt: timestamp,
-		ChatID:    chatID,
-		UpdatedAt: timestamp,
+		ID:             userID,
+		CreatedAt:      timestamp,
+		ChatID:         chatID,
+		UpdatedAt:      timestamp,
+		TimezoneOffset: -3,
 	}
 	return s.repo.Create(&userDTO, token)
 }
