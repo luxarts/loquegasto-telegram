@@ -8,5 +8,6 @@ type ExporterRow struct {
 	Description  string     `csv:"Descripción"`
 	WalletName   string     `csv:"Billetera"`
 	CategoryName string     `csv:"Categoría"`
-	CreatedAt    *time.Time `csv:"Fecha"`
+	Date         *time.Time `csv:"Fecha"`
+	Time         *time.Time `csv:"Hora"`
 }

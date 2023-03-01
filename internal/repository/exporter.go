@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"time"
 )
 
 type ExporterRepository interface {
@@ -77,7 +76,8 @@ func (r *exporterRepository) AddRow(row domain.ExporterRow, userID int64) error 
 		row.Description,
 		row.CategoryName,
 		row.WalletName,
-		row.CreatedAt.Format(time.RFC3339),
+		row.Date.Format("02/01/2006"),
+		row.Time.Format("15:04"),
 	})
 	if err != nil {
 		return err

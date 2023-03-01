@@ -35,7 +35,8 @@ func (s *exporterService) AddEntry(id string, amount float64, description string
 		Description:  description,
 		WalletName:   walletName,
 		CategoryName: categoryName,
-		CreatedAt:    createdAt,
+		Date:         createdAt,
+		Time:         createdAt,
 	}
 
 	return s.repo.AddRow(row, userID)
