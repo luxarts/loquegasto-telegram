@@ -190,7 +190,20 @@ func (c *commandsController) Cancel(ctx tg.Context) error {
 func (c *commandsController) Export(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
-	txns, err := c.txnSvc.GetAll(userID)
+	payload := ctx.Message().Payload
+	log.Printf("payload: %s\n", payload)
+
+	var now *time.Time
+	var from *time.Time
+
+	if payload != "*" {
+		to := ctx.Message().Time()
+		now = &to
+		fr := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
+		from = &fr
+	}
+
+	txns, err := c.txnSvc.GetAll(userID, from, now)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err

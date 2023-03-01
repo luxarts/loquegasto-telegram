@@ -18,7 +18,7 @@ const (
 		CommandCreateWallet + " - Crea una billetera con un nombre y un monto inicial. Ej: `/crearbilletera Débito $0.00`\n" +
 		CommandCreateCategory + " - Crea una categoría\n" +
 		CommandGetWallets + " - Muestra tus billeteras\n" +
-		CommandExport + " - Exporta todas las transacciones en formato CSV"
+		CommandExport + " - Exporta las transacciones de este mes en formato CSV. Podés poner un `*` después del comando para exportar todas."
 	MessageCancel = "❌ Operación cancelada."
 
 	// Errores
