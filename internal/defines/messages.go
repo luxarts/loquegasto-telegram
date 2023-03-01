@@ -27,10 +27,10 @@ const (
 	MessageErrorWalletNotFound = "No encontré una billetera con ese nombre."
 
 	// AddTransaction
-	MessageAddPaymentResponse = "✅ Listo, ya anoté tu pago de *%s* (%s) por *$%.2f* con *%s*."
-	MessageAddMoneyResponse   = "Listo, ya anoté ingreso de dinero de *%s* (%s) por *$%.2f* en *%s*."
+	MessageAddPaymentResponse = "✅ Listo, ya anoté tu pago de *%s* (%s) por *$%s* con *%s*."
+	MessageAddMoneyResponse   = "Listo, ya anoté tu ingreso de dinero de *%s* (%s) por *$%s* en *%s*."
 
-	// UpdateTransaction
+	// UpdateTransactionsss
 	MesssageUpdatePaymentResponse = "Listo, ya modifiqué la transacción."
 
 	// CreateWallet

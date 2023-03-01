@@ -2,6 +2,8 @@ package controller
 
 import (
 	"fmt"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
@@ -129,9 +131,9 @@ func (c *commandsController) GetWallets(ctx tg.Context) error {
 	response := fmt.Sprintf("*Billeteras:*")
 	for _, w := range *wallets {
 		totalBalance += w.Balance
-		response = fmt.Sprintf("%s\n%s: $%.2f", response, w.Name, w.Balance)
+		response = fmt.Sprintf("%s\n%s: $%s", response, w.Name, formatFloat(w.Balance))
 	}
-	response = fmt.Sprintf("%s\n\nTotal: $%.2f", response, totalBalance)
+	response = fmt.Sprintf("%s\n\nTotal: $%s", response, formatFloat(totalBalance))
 
 	err = ctx.Send(response, tg.ModeMarkdown)
 	if err != nil {
@@ -249,6 +251,9 @@ func (c *commandsController) Export(ctx tg.Context) error {
 }
 
 // Utils
+func formatFloat(n float64) string {
+	return message.NewPrinter(language.Spanish).Sprintf("%.2f", n)
+}
 func (c *commandsController) errorHandler(ctx tg.Context, err error) {
 	log.Println(err)
 	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)

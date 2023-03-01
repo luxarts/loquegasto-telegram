@@ -421,14 +421,14 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 		msg = fmt.Sprintf(defines.MessageAddPaymentResponse,
 			txn.Description,
 			cat.Name,
-			txn.Amount,
+			formatFloat(txn.Amount),
 			wal.Name,
 		)
 	} else {
 		msg = fmt.Sprintf(defines.MessageAddMoneyResponse,
 			txn.Description,
 			cat.Name,
-			txn.Amount,
+			formatFloat(txn.Amount),
 			wal.Name,
 		)
 	}
