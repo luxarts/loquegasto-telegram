@@ -10,7 +10,7 @@ import (
 type TransactionsService interface {
 	AddTransaction(userID int64, msgID int64, amount float64, description string, walletID int64, categoryID int64, timestamp *time.Time) error
 	UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID int64) error
-	GetAll(userID int64) (*[]domain.TransactionDTO, error)
+	GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error)
 }
 
 type transactionsService struct {
@@ -54,12 +54,12 @@ func (srv *transactionsService) UpdateTransaction(userID int64, msgID int64, amo
 
 	return srv.repo.UpdateByMsgID(msgID, &dto, token)
 }
-func (srv *transactionsService) GetAll(userID int64) (*[]domain.TransactionDTO, error) {
+func (srv *transactionsService) GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
 
-	r, err := srv.repo.GetAll(token)
+	r, err := srv.repo.GetAll(token, from, to)
 	if err != nil {
 		return nil, err
 	}

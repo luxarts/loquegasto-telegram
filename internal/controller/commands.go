@@ -190,7 +190,26 @@ func (c *commandsController) Cancel(ctx tg.Context) error {
 func (c *commandsController) Export(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
-	txns, err := c.txnSvc.GetAll(userID)
+	payload := ctx.Message().Payload
+	log.Printf("payload: %s\n", payload)
+
+	var now *time.Time
+	var from *time.Time
+
+	if payload != "*" {
+		to := ctx.Message().Time()
+		now = &to
+		fr := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
+		from = &fr
+	}
+
+	txns, err := c.txnSvc.GetAll(userID, from, now)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	usr, err := c.userSvc.GetByID(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -222,13 +241,15 @@ func (c *commandsController) Export(ctx tg.Context) error {
 			return err
 		}
 
+		fixedCreatedAt := txn.CreatedAt.Add(time.Hour * time.Duration(usr.TimezoneOffset))
+
 		err = c.exporterSvc.AddEntry(
 			txn.ID,
 			txn.Amount,
 			txn.Description,
 			wal.Name,
 			cat.Name,
-			txn.CreatedAt,
+			&fixedCreatedAt,
 			userID,
 		)
 		if err != nil {
@@ -255,14 +276,14 @@ func formatFloat(n float64) string {
 	return message.NewPrinter(language.Spanish).Sprintf("%.2f", n)
 }
 func (c *commandsController) errorHandler(ctx tg.Context, err error) {
-	log.Println(err)
+	log.Printf("Error: %+v\n", err)
 	_, err = c.bot.Send(ctx.Recipient(), defines.MessageError, tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)
 	}
 }
 func (c *commandsController) errorHandlerResponse(ctx tg.Context, err error) {
-	log.Println(err)
+	log.Printf("Error: %+v\n", err)
 	_, err = c.bot.Send(ctx.Recipient(), fmt.Sprintf(defines.MessageErrorResponse, err.Error()), tg.ModeMarkdown)
 	if err != nil {
 		log.Println(err)

@@ -11,4 +11,6 @@ const (
 	DefaultCategoryEmojiFood    = "🍽️"
 	DefaultCategoryNameOutings  = "Salidas"
 	DefaultCategoryEmojiOutings = "🎭"
+
+	DefaultUserTimeZone = -3
 )

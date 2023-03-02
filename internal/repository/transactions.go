@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/luxarts/jsend-go"
@@ -16,7 +17,7 @@ import (
 
 type TransactionsRepository interface {
 	Create(transactionDTO *domain.TransactionDTO, token string) error
-	GetAll(token string) (*[]domain.TransactionDTO, error)
+	GetAll(token string, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error)
 	UpdateByMsgID(msgID int64, transactionDTO *domain.TransactionDTO, token string) error
 }
 
@@ -54,11 +55,20 @@ func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, t
 
 	return nil
 }
-func (r *transactionsRepository) GetAll(token string) (*[]domain.TransactionDTO, error) {
+func (r *transactionsRepository) GetAll(token string, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
+
+	if from != nil {
+		req = req.SetQueryParam("from", strconv.FormatInt(from.UTC().Unix(), 10))
+	}
+	if to != nil {
+		req = req.SetQueryParam("to", strconv.FormatInt(to.UTC().Unix(), 10))
+	}
+
 	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionsGetAllURL))
+
 	if err != nil {
 		return nil, err
 	}

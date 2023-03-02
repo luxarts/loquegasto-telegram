@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
+	"loquegasto-telegram/internal/utils/maptostruct"
 	"net/http"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 
 type UsersRepository interface {
 	Create(transactionDTO *domain.UserDTO, token string) error
+	GetByID(token string) (*domain.UserDTO, error)
 }
 
 type usersRepository struct {
@@ -50,4 +52,32 @@ func (r *usersRepository) Create(userDTO *domain.UserDTO, token string) error {
 	}
 
 	return nil
+}
+func (r *usersRepository) GetByID(token string) (*domain.UserDTO, error) {
+	req := r.client.R()
+	req = req.SetAuthScheme("Bearer")
+	req = req.SetAuthToken(token)
+	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIUsersGetByID))
+	if err != nil {
+		return nil, err
+	}
+
+	var body jsend.Body
+	err = json.Unmarshal(resp.Body(), &body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(body.Error())
+	}
+
+	// Convert map into struct
+	var response domain.UserDTO
+	err = maptostruct.Convert(body.Data, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }

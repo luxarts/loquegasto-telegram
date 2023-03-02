@@ -5,4 +5,5 @@ const (
 	ParamName       = "name"
 	ParamCategoryID = "categoryID"
 	ParamWalletID   = "walletID"
+	ParamUserID     = "userID"
 )

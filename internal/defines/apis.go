@@ -8,6 +8,7 @@ const (
 
 	// Users
 	APIUsersCreateURL = "/users"
+	APIUsersGetByID   = "/user"
 
 	// Wallets
 	APIWalletsCreateURL = "/wallets"
