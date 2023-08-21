@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"github.com/go-redis/redis/v9"
 	"log"
 	"loquegasto-telegram/internal/controller"
@@ -43,6 +44,9 @@ func mapCommands() {
 		Password: os.Getenv(defines.EnvRedisPassword),
 		Username: os.Getenv(defines.EnvRedisUsername),
 	})
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Failed to ping Redis: %v\n", err)
+	}
 
 	// Init repositories
 	txnRepo := repository.NewTransactionsRepository(restClient)

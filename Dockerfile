@@ -25,6 +25,4 @@ COPY --from=build /build/bin /app/
 
 WORKDIR /app
 
-EXPOSE 8080
-
 CMD ["./bin"]
