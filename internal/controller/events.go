@@ -26,26 +26,39 @@ type EventsController interface {
 	Process(ctx tg.Context) error
 	GetTypeFromMessage(m *tg.Message) messageType
 	//ParseEdited(ctx tg.Context) error
+	StartGroup(ctx tg.Context) error
 }
 type eventsController struct {
+	callbacks   map[string]func(ctx tg.Context) error
 	bot         *tg.Bot
 	txnSvc      service.TransactionsService
+	usrSvc      service.UsersService
 	usrStateSvc service.UserStateService
 	walletsSvc  service.WalletsService
 	catSvc      service.CategoriesService
 }
 
-func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
-	return &eventsController{
+func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrSvc service.UsersService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
+	ctrl := &eventsController{
 		bot:         bot,
 		txnSvc:      txnSvc,
+		usrSvc:      usrSvc,
 		usrStateSvc: usrStateSvc,
 		walletsSvc:  walletsSvc,
 		catSvc:      catSvc,
 	}
+
+	ctrl.callbacks = make(map[string]func(ctx tg.Context) error, 0)
+	ctrl.callbacks[defines.CallbackAddUserToGroup] = ctrl.addUserToGroup
+
+	return ctrl
 }
 
 func (c *eventsController) Parse(ctx tg.Context) error {
+	if ctx.Chat().Type == tg.ChatGroup {
+		return nil
+	}
+
 	usrState, err := c.usrStateSvc.GetByUserID(ctx.Sender().ID)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -70,6 +83,10 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 	return err
 }
 func (c *eventsController) Process(ctx tg.Context) error {
+	if callback, exists := c.callbacks[ctx.Callback().Data]; exists {
+		return callback(ctx)
+	}
+
 	userID := ctx.Sender().ID
 	txnStatus, err := c.usrStateSvc.GetByUserID(userID)
 	if err != nil {
@@ -98,6 +115,19 @@ func (c *eventsController) processState(ctx tg.Context, usrState *domain.UserSta
 		return c.createWalletWaitingAmount(ctx, usrState)
 	}
 
+	return nil
+}
+func (c *eventsController) StartGroup(ctx tg.Context) error {
+	// Create response
+	kb := &tg.ReplyMarkup{}
+	btn := kb.Data("Agregarme", "", defines.CallbackAddUserToGroup)
+	kb.Inline(kb.Row(btn))
+
+	ctx.Send("Hola! Para registrar a los integrantes necesito que cada uno presione el siguiente botón",
+		&tg.SendOptions{
+			ReplyMarkup: kb,
+		},
+		tg.ModeMarkdown)
 	return nil
 }
 
@@ -223,6 +253,21 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 	)
 
 	return err
+}
+
+// Callbacks
+func (c *eventsController) addUserToGroup(ctx tg.Context) error {
+	userID := ctx.Sender().ID
+	log.Printf("UserID: %d\n", userID)
+
+	// Try to create user, if already exists ignore it
+	ts := time.Unix(ctx.Message().Unixtime, 0)
+	c.usrSvc.Create(userID, &ts, ctx.Chat().ID, ctx.Chat().ID)
+
+	// Add group to user
+
+	_ = ctx.Reply("Registrado!")
+	return nil
 }
 
 /*func (c *eventsController) ParseEdited(ctx tg.Context) error {

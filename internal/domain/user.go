@@ -8,4 +8,5 @@ type UserDTO struct {
 	ChatID         int64      `json:"chat_id"`
 	UpdatedAt      *time.Time `json:"updated_at"`
 	TimezoneOffset int        `json:"timezone_offset"`
+	GroupsIDs      []int64    `json:"groups_ids"`
 }

@@ -60,7 +60,7 @@ func mapCommands() {
 
 	// Init controllers
 	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc, exporterSvc, catSvc)
-	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc)
+	evtCtrl := controller.NewEventsController(bot, txnSvc, usersSvc, usrStateSvc, walletsSvc, catSvc)
 
 	// Commands
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)
@@ -76,4 +76,5 @@ func mapCommands() {
 	bot.Handle(tgbot.OnText, evtCtrl.Parse)
 	//bot.Handle(tgbot.OnEdited, evtCtrl.ParseEdited)
 	bot.Handle(tgbot.OnCallback, evtCtrl.Process)
+	bot.Handle(tgbot.OnAddedToGroup, evtCtrl.StartGroup)
 }

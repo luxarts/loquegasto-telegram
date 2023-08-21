@@ -7,7 +7,6 @@ import (
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
-	"loquegasto-telegram/internal/utils/jwt"
 	"time"
 
 	tg "gopkg.in/telebot.v3"
@@ -61,13 +60,10 @@ func (c *commandsController) Start(ctx tg.Context) error {
 func (c *commandsController) startPrivate(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: userID,
-	})
 	ts := time.Unix(ctx.Message().Unixtime, 0)
 
 	// Create user
-	err := c.userSvc.Create(userID, &ts, ctx.Chat().ID, token)
+	err := c.userSvc.Create(userID, &ts, ctx.Chat().ID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
