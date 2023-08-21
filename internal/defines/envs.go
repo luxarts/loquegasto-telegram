@@ -5,5 +5,8 @@ const (
 	EnvTelegramToken    = "TELEGRAM_TOKEN"
 	EnvJWTSecret        = "JWT_SECRET"
 	EnvRedisHost        = "REDIS_HOST"
+	EnvRedisPort        = "REDIS_PORT"
+	EnvRedisUsername    = "REDIS_USERNAME"
+	EnvRedisPassword    = "REDIS_PASSWORD"
 	EnvExporterFilePath = "EXPORTER_FILE_PATH"
 )

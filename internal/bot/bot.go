@@ -39,7 +39,9 @@ func mapCommands() {
 	restClient := resty.New()
 	// Init redis client
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: os.Getenv(defines.EnvRedisHost),
+		Addr:     os.Getenv(defines.EnvRedisHost) + ":" + os.Getenv(defines.EnvRedisPort),
+		Password: os.Getenv(defines.EnvRedisPassword),
+		Username: os.Getenv(defines.EnvRedisUsername),
 	})
 
 	// Init repositories
