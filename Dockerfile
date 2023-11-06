@@ -5,24 +5,21 @@ FROM golang:alpine AS build
 WORKDIR /build
 
 # Download dependencies
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 
 # Copy source code
-COPY . ./
+COPY . .
 
 # Build
-RUN go build -o bin ./cmd/main.go
+RUN go build -v -o /build/bin ./cmd/main.go
 
 # Deploy
-FROM alpine
-
-RUN adduser -S -D -H -h /app appuser
-USER appuser
+FROM debian
 
 COPY --from=build /build/bin /app/
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /app
 
-CMD ["./bin"]
+ENTRYPOINT ["./bin"]
