@@ -19,4 +19,7 @@ const (
 	APICategoriesCreateURL = "/categories"
 	APICategoriesGetAllURL = "/categories"
 	APICategoriesGetByID   = "/category/{" + ParamCategoryID + "}"
+
+	// OAuth
+	APIOAuthGetLoginURL = "/oauth/login"
 )

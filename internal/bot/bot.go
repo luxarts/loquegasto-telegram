@@ -55,6 +55,7 @@ func mapCommands() {
 	usrStateRepo := repository.NewUserStateRepository(redisClient)
 	catRepo := repository.NewCategoriesRepository(restClient)
 	exporterRepo := repository.NewExporterRepository(os.Getenv(defines.EnvExporterFilePath))
+	oAuthRepo := repository.NewOAuthRepository(restClient)
 
 	// Init services
 	txnSvc := service.NewTransactionsService(txnRepo)
@@ -63,9 +64,10 @@ func mapCommands() {
 	usrStateSvc := service.NewUserStateService(usrStateRepo)
 	catSvc := service.NewCategoriesService(catRepo)
 	exporterSvc := service.NewExporterService(exporterRepo)
+	oAuthSvc := service.NewOAuthService(oAuthRepo)
 
 	// Init controllers
-	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc, exporterSvc, catSvc)
+	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc, exporterSvc, catSvc, oAuthSvc)
 	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc)
 
 	// Commands
@@ -77,6 +79,7 @@ func mapCommands() {
 	bot.Handle(defines.CommandCancel, cmdCtrl.Cancel)
 	bot.Handle(defines.CommandPing, cmdCtrl.Ping)
 	bot.Handle(defines.CommandExport, cmdCtrl.Export)
+	bot.Handle(defines.CommandGoogleLink, cmdCtrl.GoogleLink)
 
 	// Events
 	bot.Handle(tgbot.OnText, evtCtrl.Parse)

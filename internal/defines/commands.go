@@ -10,4 +10,5 @@ const (
 	CommandCreateCategory = "/crearcategoria"
 	CommandCancel         = "/cancelar"
 	CommandExport         = "/exportar"
+	CommandGoogleLink     = "/googlelink"
 )

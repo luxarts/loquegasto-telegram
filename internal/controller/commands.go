@@ -22,6 +22,7 @@ type CommandsController interface {
 	CreateCategory(ctx tg.Context) error
 	Cancel(ctx tg.Context) error
 	Export(ctx tg.Context) error
+	GoogleLink(ctx tg.Context) error
 }
 
 type commandsController struct {
@@ -32,9 +33,10 @@ type commandsController struct {
 	usrStateSvc service.UserStateService
 	exporterSvc service.ExporterService
 	catSvc      service.CategoriesService
+	oAuthSvc    service.OAuthService
 }
 
-func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, usrStateSvc service.UserStateService, exporterSvc service.ExporterService, catSvc service.CategoriesService) CommandsController {
+func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, usersSvc service.UsersService, walletSvc service.WalletsService, usrStateSvc service.UserStateService, exporterSvc service.ExporterService, catSvc service.CategoriesService, oAuthSvc service.OAuthService) CommandsController {
 	return &commandsController{
 		bot:         bot,
 		txnSvc:      txnSvc,
@@ -43,6 +45,7 @@ func NewCommandsController(bot *tg.Bot, txnSvc service.TransactionsService, user
 		usrStateSvc: usrStateSvc,
 		exporterSvc: exporterSvc,
 		catSvc:      catSvc,
+		oAuthSvc:    oAuthSvc,
 	}
 }
 
@@ -268,6 +271,24 @@ func (c *commandsController) Export(ctx tg.Context) error {
 		c.errorHandler(ctx, err)
 	}
 
+	return err
+}
+func (c *commandsController) GoogleLink(ctx tg.Context) error {
+	// Get Login URL
+	loginURL, err := c.oAuthSvc.GetLoginURL(ctx.Sender().ID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	r := c.bot.NewMarkup()
+	r.Inline(
+		r.Row(r.URL("Iniciar sesión con Google", *loginURL)),
+	)
+	err = ctx.Send("Presioná el link", r)
+	if err != nil {
+		c.errorHandler(ctx, err)
+	}
 	return err
 }
 
