@@ -24,7 +24,7 @@ func New() *tgbot.Bot {
 		Poller: &tgbot.LongPoller{
 			Timeout: 30 * time.Second,
 		},
-		Verbose: true,
+		Verbose: false,
 	})
 	if err != nil {
 		log.Fatalln(err)
