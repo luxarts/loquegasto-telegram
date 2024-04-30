@@ -1,0 +1,32 @@
+title Vincular cuenta con Google
+
+actor "User" as user
+participant "Bot" as bot
+database "Redis user-state" as redis
+participant "Backend" as back
+participant "Google Auth Server" as google
+participant "Postgres" as postgres
+
+==Get Login URL==
+user->bot: /google
+bot->redis: state: Link:WaitingGoogleLogin
+bot->back: GET /login?userID=
+box over back: Generate PKCE and state
+back-->bot: 200 {"url":"google.com/login..."}
+bot-->user: Ingresá al link e inicia sesión
+
+==Login==
+create WebBrowser
+user->WebBrowser: google.com/login...
+activate WebBrowser
+box over WebBrowser: User login and consent
+WebBrowser->back: GET /callback?state=&code=
+activate back
+deactivate WebBrowser
+
+==Exchange==
+
+back->google: POST /token {code, code_verifier}
+google-->back: {access_token, refresh_token}
+back->postgres: refresh_token
+back-->WebBrowser: 302 Location: t.me/LoQueGastoBot
