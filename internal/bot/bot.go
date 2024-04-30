@@ -24,10 +24,10 @@ func New() *tgbot.Bot {
 		Poller: &tgbot.LongPoller{
 			Timeout: 30 * time.Second,
 		},
-		Verbose: true,
+		Verbose: false,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to create bot: %v\n", err)
 	}
 
 	mapCommands()
@@ -40,9 +40,10 @@ func mapCommands() {
 	restClient := resty.New()
 	// Init redis client
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv(defines.EnvRedisHost) + ":" + os.Getenv(defines.EnvRedisPort),
-		Password: os.Getenv(defines.EnvRedisPassword),
-		Username: os.Getenv(defines.EnvRedisUsername),
+		Addr:        os.Getenv(defines.EnvRedisHost) + ":" + os.Getenv(defines.EnvRedisPort),
+		Password:    os.Getenv(defines.EnvRedisPassword),
+		Username:    os.Getenv(defines.EnvRedisUsername),
+		DialTimeout: 30 * time.Second,
 	})
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("Failed to ping Redis: %v\n", err)
@@ -55,10 +56,11 @@ func mapCommands() {
 	usrStateRepo := repository.NewUserStateRepository(redisClient)
 	catRepo := repository.NewCategoriesRepository(restClient)
 	exporterRepo := repository.NewExporterRepository(os.Getenv(defines.EnvExporterFilePath))
+	sessionsRepo := repository.NewSessionsRepository()
 
 	// Init services
 	txnSvc := service.NewTransactionsService(txnRepo)
-	usersSvc := service.NewUsersService(usersRepo)
+	usersSvc := service.NewUsersService(usersRepo, sessionsRepo, walletsRepo, catRepo)
 	walletsSvc := service.NewWalletsService(walletsRepo)
 	usrStateSvc := service.NewUserStateService(usrStateRepo)
 	catSvc := service.NewCategoriesService(catRepo)

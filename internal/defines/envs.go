@@ -9,4 +9,6 @@ const (
 	EnvRedisUsername    = "REDIS_USERNAME"
 	EnvRedisPassword    = "REDIS_PASSWORD"
 	EnvExporterFilePath = "EXPORTER_FILE_PATH"
+	EnvAPIClientID      = "API_CLIENT_ID"
+	EnvAPIClientSecret  = "API_CLIENT_SECRET"
 )

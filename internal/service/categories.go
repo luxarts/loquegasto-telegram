@@ -7,9 +7,9 @@ import (
 )
 
 type CategoriesService interface {
-	GetAll(userID int64) (*[]domain.CategoryDTO, error)
-	GetByID(ID int64, userID int64) (*domain.CategoryDTO, error)
-	Create(userID int64, name string, emoji string) (*domain.CategoryDTO, error)
+	GetAll(userID int64) (*[]domain.APICategoryGetResponse, error)
+	GetByID(ID string, userID int64) (*domain.APICategoryGetResponse, error)
+	Create(userID int64, name string, emoji string) (*domain.APICategoryCreateResponse, error)
 }
 type categoriesService struct {
 	repo repository.CategoriesRepository
@@ -19,26 +19,26 @@ func NewCategoriesService(repo repository.CategoriesRepository) CategoriesServic
 	return &categoriesService{repo: repo}
 }
 
-func (s *categoriesService) GetAll(userID int64) (*[]domain.CategoryDTO, error) {
+func (s *categoriesService) GetAll(userID int64) (*[]domain.APICategoryGetResponse, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
 
 	return s.repo.GetAll(token)
 }
-func (s *categoriesService) GetByID(ID int64, userID int64) (*domain.CategoryDTO, error) {
+func (s *categoriesService) GetByID(ID string, userID int64) (*domain.APICategoryGetResponse, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
 
 	return s.repo.GetByID(ID, token)
 }
-func (s *categoriesService) Create(userID int64, name string, emoji string) (*domain.CategoryDTO, error) {
+func (s *categoriesService) Create(userID int64, name string, emoji string) (*domain.APICategoryCreateResponse, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
 
-	dto := &domain.CategoryDTO{
+	dto := &domain.APICategoryCreateRequest{
 		Name:  name,
 		Emoji: emoji,
 	}

@@ -7,7 +7,6 @@ import (
 	"log"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/service"
-	"loquegasto-telegram/internal/utils/jwt"
 	"time"
 
 	tg "gopkg.in/telebot.v3"
@@ -61,49 +60,13 @@ func (c *commandsController) Start(ctx tg.Context) error {
 func (c *commandsController) startPrivate(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: userID,
-	})
-	ts := time.Unix(ctx.Message().Unixtime, 0)
-
-	// Create user
-	err := c.userSvc.Create(userID, &ts, ctx.Chat().ID, token)
+	err := c.userSvc.Create(userID)
 	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
-	// Crear wallet
-	_, err = c.walletSvc.Create(userID, defines.DefaultWalletName, 0, &ts)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
-	// Crear categorías
-	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameOthers, defines.DefaultCategoryEmojiOthers)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameHouse, defines.DefaultCategoryEmojiHouse)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameFood, defines.DefaultCategoryEmojiFood)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-	_, err = c.catSvc.Create(userID, defines.DefaultCategoryNameOutings, defines.DefaultCategoryEmojiOutings)
-	if err != nil {
-		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Show onboarding message
-	return ctx.Send(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown)
+	return ctx.Reply(fmt.Sprintf(defines.MessageStart, ctx.Sender().FirstName), tg.ModeMarkdown)
 }
 func (c *commandsController) Help(ctx tg.Context) error {
 	err := ctx.Send(defines.MessageHelp, tg.ModeMarkdown)
@@ -209,12 +172,6 @@ func (c *commandsController) Export(ctx tg.Context) error {
 		return err
 	}
 
-	usr, err := c.userSvc.GetByID(userID)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-
 	err = c.exporterSvc.Create(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -241,7 +198,7 @@ func (c *commandsController) Export(ctx tg.Context) error {
 			return err
 		}
 
-		fixedCreatedAt := txn.CreatedAt.Add(time.Hour * time.Duration(usr.TimezoneOffset))
+		fixedCreatedAt := txn.CreatedAt.Add(time.Hour * time.Duration(defines.DefaultUserTimeZone)) // TODO Get from user
 
 		err = c.exporterSvc.AddEntry(
 			txn.ID,

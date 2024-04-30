@@ -10,13 +10,12 @@ import (
 	"loquegasto-telegram/internal/utils/maptostruct"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 type CategoriesRepository interface {
-	Create(dto *domain.CategoryDTO, token string) (*domain.CategoryDTO, error)
-	GetAll(token string) (*[]domain.CategoryDTO, error)
-	GetByID(ID int64, token string) (*domain.CategoryDTO, error)
+	Create(req *domain.APICategoryCreateRequest, token string) (*domain.APICategoryCreateResponse, error)
+	GetAll(token string) (*[]domain.APICategoryGetResponse, error)
+	GetByID(ID string, token string) (*domain.APICategoryGetResponse, error)
 }
 
 type categoriesRepository struct {
@@ -31,12 +30,12 @@ func NewCategoriesRepository(client *resty.Client) CategoriesRepository {
 	}
 }
 
-func (r *categoriesRepository) Create(dto *domain.CategoryDTO, token string) (*domain.CategoryDTO, error) {
-	req := r.client.R()
-	req = req.SetBody(dto)
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesCreateURL))
+func (r *categoriesRepository) Create(req *domain.APICategoryCreateRequest, token string) (*domain.APICategoryCreateResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		SetBody(req).
+		Post(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesCreateURL))
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +48,7 @@ func (r *categoriesRepository) Create(dto *domain.CategoryDTO, token string) (*d
 		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
 	}
 
-	var response domain.CategoryDTO
+	var response domain.APICategoryCreateResponse
 	err = maptostruct.Convert(body.Data, &response)
 	if err != nil {
 		return nil, err
@@ -58,11 +57,11 @@ func (r *categoriesRepository) Create(dto *domain.CategoryDTO, token string) (*d
 	return &response, nil
 }
 
-func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, error) {
-	req := r.client.R()
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetAllURL))
+func (r *categoriesRepository) GetAll(token string) (*[]domain.APICategoryGetResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetAllURL))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, erro
 	if err != nil {
 		return nil, err
 	}
-	var response []domain.CategoryDTO
+	var response []domain.APICategoryGetResponse
 	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err
@@ -85,12 +84,12 @@ func (r *categoriesRepository) GetAll(token string) (*[]domain.CategoryDTO, erro
 
 	return &response, nil
 }
-func (r *categoriesRepository) GetByID(ID int64, token string) (*domain.CategoryDTO, error) {
-	req := r.client.R()
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamCategoryID, strconv.FormatInt(ID, 10))
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetByID))
+func (r *categoriesRepository) GetByID(ID string, token string) (*domain.APICategoryGetResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		SetPathParam(defines.ParamCategoryID, ID).
+		Get(fmt.Sprintf("%s%s", r.baseURL, defines.APICategoriesGetByID))
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +104,7 @@ func (r *categoriesRepository) GetByID(ID int64, token string) (*domain.Category
 	if err != nil {
 		return nil, err
 	}
-	var response domain.CategoryDTO
+	var response domain.APICategoryGetResponse
 	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err

@@ -4,24 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-resty/resty/v2"
+	"github.com/luxarts/jsend-go"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/utils/maptostruct"
 	"net/http"
 	"os"
-	"strconv"
-
-	"github.com/go-resty/resty/v2"
-	"github.com/luxarts/jsend-go"
 )
 
 var ErrNotFound = errors.New("not found")
 
 type WalletsRepository interface {
-	Create(transactionDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error)
-	GetAll(token string) (*[]domain.WalletDTO, error)
-	GetByName(name string, token string) (*domain.WalletDTO, error)
-	GetByID(ID int64, token string) (*domain.WalletDTO, error)
+	Create(req *domain.APIWalletCreateRequest, token string) (*domain.APIWalletCreateResponse, error)
+	GetAll(token string) (*[]domain.APIWalletGetResponse, error)
+	GetByName(name string, token string) (*domain.APIWalletGetResponse, error)
+	GetByID(ID string, token string) (*domain.APIWalletGetResponse, error)
 }
 
 type walletsRepository struct {
@@ -36,12 +34,12 @@ func NewWalletsRepository(client *resty.Client) WalletsRepository {
 	}
 }
 
-func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*domain.WalletDTO, error) {
-	req := r.client.R()
-	req = req.SetBody(userDTO)
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsCreateURL))
+func (r *walletsRepository) Create(req *domain.APIWalletCreateRequest, token string) (*domain.APIWalletCreateResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		SetBody(req).
+		Post(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsCreateURL))
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +54,7 @@ func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*do
 		return nil, jsend.NewError(body.Error(), err, resp.StatusCode())
 	}
 
-	var response domain.WalletDTO
+	var response domain.APIWalletCreateResponse
 	err = maptostruct.Convert(body.Data, &response)
 	if err != nil {
 		return nil, err
@@ -64,11 +62,11 @@ func (r *walletsRepository) Create(userDTO *domain.WalletDTO, token string) (*do
 
 	return &response, nil
 }
-func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
-	req := r.client.R()
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+func (r *walletsRepository) GetAll(token string) (*[]domain.APIWalletGetResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +81,7 @@ func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	var response []domain.WalletDTO
+	var response []domain.APIWalletGetResponse
 	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err
@@ -91,12 +89,11 @@ func (r *walletsRepository) GetAll(token string) (*[]domain.WalletDTO, error) {
 
 	return &response, nil
 }
-func (r *walletsRepository) GetByName(name string, token string) (*domain.WalletDTO, error) {
-	req := r.client.R()
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	req = req.SetQueryParam(defines.ParamName, name)
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
+func (r *walletsRepository) GetByName(name string, token string) (*domain.APIWalletGetResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetAllURL))
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +111,7 @@ func (r *walletsRepository) GetByName(name string, token string) (*domain.Wallet
 	}
 
 	// Convert map into struct
-	var response domain.WalletDTO
+	var response domain.APIWalletGetResponse
 	err = maptostruct.Convert(body.Data, &response)
 	if err != nil {
 		return nil, err
@@ -122,12 +119,12 @@ func (r *walletsRepository) GetByName(name string, token string) (*domain.Wallet
 
 	return &response, nil
 }
-func (r *walletsRepository) GetByID(ID int64, token string) (*domain.WalletDTO, error) {
-	req := r.client.R()
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	req = req.SetPathParam(defines.ParamWalletID, strconv.FormatInt(ID, 10))
-	resp, err := req.Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetByID))
+func (r *walletsRepository) GetByID(ID string, token string) (*domain.APIWalletGetResponse, error) {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		SetPathParam(defines.ParamWalletID, ID).
+		Get(fmt.Sprintf("%s%s", r.baseURL, defines.APIWalletsGetByID))
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +139,7 @@ func (r *walletsRepository) GetByID(ID int64, token string) (*domain.WalletDTO, 
 	if err != nil {
 		return nil, err
 	}
-	var response domain.WalletDTO
+	var response domain.APIWalletGetResponse
 	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err

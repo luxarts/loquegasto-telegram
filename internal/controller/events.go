@@ -66,6 +66,8 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 	switch t {
 	case messageTypeTransaction:
 		err = c.beginTransaction(ctx)
+	default:
+		return nil
 	}
 	return err
 }
@@ -106,9 +108,9 @@ func (c *eventsController) createCategoryWaitingName(ctx tg.Context, usrState *d
 	userID := ctx.Sender().ID
 	categoryName := ctx.Message().Text
 
-	cat, ok := usrState.Data.(domain.CategoryDTO)
+	cat, ok := usrState.Data.(domain.APICategoryCreateRequest)
 	if !ok {
-		cat = domain.CategoryDTO{}
+		cat = domain.APICategoryCreateRequest{}
 	}
 	cat.Name = categoryName
 	usrState.Data = cat
@@ -133,7 +135,7 @@ func (c *eventsController) createCategoryWaitingEmoji(ctx tg.Context, usrState *
 	userID := ctx.Sender().ID
 	categoryEmoji := ctx.Message().Text
 
-	var cat domain.CategoryDTO
+	var cat domain.APICategoryCreateRequest
 	err := maptostruct.Convert(usrState.Data, &cat)
 	if err != nil {
 		return err
@@ -163,9 +165,9 @@ func (c *eventsController) createWalletWaitingName(ctx tg.Context, usrState *dom
 	userID := ctx.Sender().ID
 	walletName := ctx.Message().Text
 
-	w, ok := usrState.Data.(domain.WalletDTO)
+	w, ok := usrState.Data.(domain.APIWalletCreateRequest)
 	if !ok {
-		w = domain.WalletDTO{}
+		w = domain.APIWalletCreateRequest{}
 	}
 	w.Name = walletName
 	usrState.Data = w
@@ -196,7 +198,7 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 		return err
 	}
 
-	var w domain.WalletDTO
+	var w domain.APIWalletCreateRequest
 	err = maptostruct.Convert(usrState.Data, &w)
 	if err != nil {
 		return err
@@ -204,9 +206,9 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 
 	createdAt := time.Unix(ctx.Message().Unixtime, 0)
 
-	w.Balance = balance
+	w.InitialAmount = balance
 
-	_, err = c.walletsSvc.Create(userID, w.Name, w.Balance, &createdAt)
+	_, err = c.walletsSvc.Create(userID, w.Name, w.InitialAmount, &createdAt)
 	if err != nil {
 		return err
 	}
@@ -327,11 +329,8 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 	}
 
 	// Update and change status to next step: category selection
-	walletID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
+	walletID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
+
 	var txn domain.TransactionDTO
 	err = maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
@@ -375,11 +374,7 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 		return err
 	}
 
-	catID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
+	catID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
 
 	cat, err := c.catSvc.GetByID(catID, userID)
 	if err != nil {
@@ -506,26 +501,26 @@ func (c *eventsController) botRespond(ctx tg.Context, msg string) {
 	}
 }
 
-func buildWalletsKeyboard(wallets *[]domain.WalletDTO) *tg.ReplyMarkup {
+func buildWalletsKeyboard(wallets *[]domain.APIWalletGetResponse) *tg.ReplyMarkup {
 	kb := &tg.ReplyMarkup{}
 
 	var btns []tg.Btn
 
 	for _, w := range *wallets {
-		btns = append(btns, kb.Data(w.Name, strconv.FormatInt(w.ID, 10)))
+		btns = append(btns, kb.Data(w.Name, w.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
 
 	return kb
 }
-func buildCategoriesKeyboard(c *[]domain.CategoryDTO) *tg.ReplyMarkup {
+func buildCategoriesKeyboard(c *[]domain.APICategoryGetResponse) *tg.ReplyMarkup {
 	kb := &tg.ReplyMarkup{}
 
 	var btns []tg.Btn
 
 	for _, c := range *c {
-		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.FormatInt(c.ID, 10)))
+		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, c.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)

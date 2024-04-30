@@ -8,7 +8,7 @@ const (
 
 	// Users
 	APIUsersCreateURL = "/users"
-	APIUsersGetByID   = "/user"
+	APIUsersAuthURL   = "/auth/telegram"
 
 	// Wallets
 	APIWalletsCreateURL = "/wallets"

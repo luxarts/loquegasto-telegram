@@ -1,16 +1,11 @@
 package defines
 
 const (
-	DefaultWalletName = "💵 Efectivo"
+	DefaultWalletName  = "Efectivo"
+	DefaultWalletEmoji = "💵"
 
-	DefaultCategoryNameOthers   = "Otros"
-	DefaultCategoryEmojiOthers  = "📦"
-	DefaultCategoryNameHouse    = "House"
-	DefaultCategoryEmojiHouse   = "🏠"
-	DefaultCategoryNameFood     = "Comida"
-	DefaultCategoryEmojiFood    = "🍽️"
-	DefaultCategoryNameOutings  = "Salidas"
-	DefaultCategoryEmojiOutings = "🎭"
+	DefaultCategoryNameOthers  = "Otros"
+	DefaultCategoryEmojiOthers = "📦"
 
 	DefaultUserTimeZone = -3
 )
