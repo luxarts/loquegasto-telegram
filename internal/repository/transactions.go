@@ -16,9 +16,9 @@ import (
 )
 
 type TransactionsRepository interface {
-	Create(transactionDTO *domain.TransactionDTO, token string) error
-	GetAll(token string, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error)
-	UpdateByMsgID(msgID int64, transactionDTO *domain.TransactionDTO, token string) error
+	Create(transactionDTO *domain.APITransactionCreateRequest, token string) error
+	GetAll(token string, from *time.Time, to *time.Time) (*[]domain.APITransactionCreateRequest, error)
+	UpdateByMsgID(msgID int64, transactionDTO *domain.APITransactionCreateRequest, token string) error
 }
 
 type transactionsRepository struct {
@@ -33,12 +33,12 @@ func NewTransactionsRepository(client *resty.Client) TransactionsRepository {
 	}
 }
 
-func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, token string) error {
-	req := r.client.R()
-	req = req.SetBody(transactionDTO)
-	req = req.SetAuthScheme("Bearer")
-	req = req.SetAuthToken(token)
-	resp, err := req.Post(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionAddURL))
+func (r *transactionsRepository) Create(req *domain.APITransactionCreateRequest, token string) error {
+	resp, err := r.client.R().
+		SetAuthScheme("Bearer").
+		SetAuthToken(token).
+		SetBody(req).
+		Post(fmt.Sprintf("%s%s", r.baseURL, defines.APITransactionAddURL))
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (r *transactionsRepository) Create(transactionDTO *domain.TransactionDTO, t
 
 	return nil
 }
-func (r *transactionsRepository) GetAll(token string, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error) {
+func (r *transactionsRepository) GetAll(token string, from *time.Time, to *time.Time) (*[]domain.APITransactionCreateRequest, error) {
 	req := r.client.R()
 	req = req.SetAuthScheme("Bearer")
 	req = req.SetAuthToken(token)
@@ -88,7 +88,7 @@ func (r *transactionsRepository) GetAll(token string, from *time.Time, to *time.
 	if err != nil {
 		return nil, err
 	}
-	var response []domain.TransactionDTO
+	var response []domain.APITransactionCreateRequest
 	err = json.Unmarshal(jsonBody, &response)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (r *transactionsRepository) GetAll(token string, from *time.Time, to *time.
 
 	return &response, nil
 }
-func (r *transactionsRepository) UpdateByMsgID(msgID int64, transactionDTO *domain.TransactionDTO, token string) error {
+func (r *transactionsRepository) UpdateByMsgID(msgID int64, transactionDTO *domain.APITransactionCreateRequest, token string) error {
 	req := r.client.R()
 	req = req.SetBody(transactionDTO)
 	req = req.SetAuthScheme("Bearer")

@@ -83,7 +83,13 @@ func (c *commandsController) Ping(ctx tg.Context) error {
 	return err
 }
 func (c *commandsController) GetWallets(ctx tg.Context) error {
-	wallets, err := c.walletSvc.GetAll(ctx.Sender().ID)
+	token, err := c.userSvc.GetToken(ctx.Sender().ID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	wallets, err := c.walletSvc.GetAll(token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -152,6 +158,11 @@ func (c *commandsController) Cancel(ctx tg.Context) error {
 }
 func (c *commandsController) Export(ctx tg.Context) error {
 	userID := ctx.Sender().ID
+	token, err := c.userSvc.GetToken(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
 
 	payload := ctx.Message().Payload
 	log.Printf("payload: %s\n", payload)
@@ -187,12 +198,12 @@ func (c *commandsController) Export(ctx tg.Context) error {
 	}()
 
 	for _, txn := range *txns {
-		wal, err := c.walletSvc.GetByID(txn.WalletID, userID)
+		wal, err := c.walletSvc.GetByID(txn.WalletID, token)
 		if err != nil {
 			c.errorHandler(ctx, err)
 			return err
 		}
-		cat, err := c.catSvc.GetByID(txn.CategoryID, userID)
+		cat, err := c.catSvc.GetByID(txn.CategoryID, token)
 		if err != nil {
 			c.errorHandler(ctx, err)
 			return err
@@ -201,7 +212,7 @@ func (c *commandsController) Export(ctx tg.Context) error {
 		fixedCreatedAt := txn.CreatedAt.Add(time.Hour * time.Duration(defines.DefaultUserTimeZone)) // TODO Get from user
 
 		err = c.exporterSvc.AddEntry(
-			txn.ID,
+			"",
 			txn.Amount,
 			txn.Description,
 			wal.Name,

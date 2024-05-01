@@ -9,7 +9,7 @@ import (
 )
 
 type UserStateRepository interface {
-	Create(dto *domain.UserStateDTO) error
+	Create(userID int64, dto *domain.UserStateDTO) error
 	GetByUserID(userID int64) (*domain.UserStateDTO, error)
 	UpdateByUserID(userID int64, dto *domain.UserStateDTO) error
 	DeleteByUserID(userID int64) error
@@ -24,14 +24,14 @@ func NewUserStateRepository(rc *redis.Client) UserStateRepository {
 	}
 }
 
-func (r *userStateRepository) Create(dto *domain.UserStateDTO) error {
+func (r *userStateRepository) Create(userID int64, dto *domain.UserStateDTO) error {
 	dtoBytes, err := json.Marshal(dto)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	return r.rc.Set(ctx, strconv.FormatInt(dto.Data.(domain.TransactionDTO).UserID, 10), string(dtoBytes), 0).Err()
+	return r.rc.Set(ctx, strconv.FormatInt(userID, 10), string(dtoBytes), 0).Err()
 }
 func (r *userStateRepository) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	uID := strconv.FormatInt(userID, 10)

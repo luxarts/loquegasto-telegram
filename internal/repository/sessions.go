@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"errors"
+	"loquegasto-telegram/internal/defines"
 	"sync"
 )
 
@@ -31,7 +31,7 @@ func (s *sessionsRepository) Get(userID int64) (*string, error) {
 	token, ok := s.values[userID]
 
 	if !ok {
-		return nil, errors.New("session not found")
+		return nil, defines.ErrSessionNotFound
 	}
 
 	return &token, nil

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"loquegasto-telegram/internal/defines"
 	"loquegasto-telegram/internal/domain"
 	"loquegasto-telegram/internal/repository"
@@ -8,6 +9,7 @@ import (
 
 type UsersService interface {
 	Create(userID int64) error
+	GetToken(userID int64) (string, error)
 }
 type usersService struct {
 	usersRepo  repository.UsersRepository
@@ -34,24 +36,17 @@ func (s *usersService) Create(userID int64) error {
 		return err
 	}
 
-	// Auth user
-	authResp, err := s.usersRepo.Auth(&domain.APIUsersAuthRequest{
-		ChatID: userID,
-	})
-
+	token, err := s.GetToken(userID)
 	if err != nil {
 		return err
 	}
-
-	// Create session
-	s.sessRepo.Add(userID, authResp.AccessToken)
 
 	// Create default wallet
 	_, err = s.walletRepo.Create(&domain.APIWalletCreateRequest{
 		Name:          defines.DefaultWalletName,
 		InitialAmount: 0,
 		Emoji:         defines.DefaultWalletEmoji,
-	}, authResp.AccessToken)
+	}, token)
 
 	if err != nil {
 		return err
@@ -61,7 +56,32 @@ func (s *usersService) Create(userID int64) error {
 	_, err = s.catRepo.Create(&domain.APICategoryCreateRequest{
 		Name:  defines.DefaultCategoryNameOthers,
 		Emoji: defines.DefaultCategoryEmojiOthers,
-	}, authResp.AccessToken)
+	}, token)
 
 	return err
+}
+func (s *usersService) GetToken(userID int64) (string, error) {
+	// Get from cache
+	token, err := s.sessRepo.Get(userID)
+
+	if err != nil {
+		if !errors.Is(err, defines.ErrSessionNotFound) {
+			return "", err
+		}
+
+		// Login
+		resp, err := s.usersRepo.Auth(&domain.APIUsersAuthRequest{
+			ChatID: userID,
+		})
+		if err != nil {
+			return "", err
+		}
+
+		// Store in cache
+		s.sessRepo.Add(userID, resp.AccessToken)
+
+		token = &resp.AccessToken
+	}
+
+	return *token, nil
 }

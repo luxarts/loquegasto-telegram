@@ -61,14 +61,14 @@ func mapCommands() {
 	// Init services
 	txnSvc := service.NewTransactionsService(txnRepo)
 	usersSvc := service.NewUsersService(usersRepo, sessionsRepo, walletsRepo, catRepo)
-	walletsSvc := service.NewWalletsService(walletsRepo)
+	walletsSvc := service.NewWalletsService(walletsRepo, sessionsRepo)
 	usrStateSvc := service.NewUserStateService(usrStateRepo)
 	catSvc := service.NewCategoriesService(catRepo)
 	exporterSvc := service.NewExporterService(exporterRepo)
 
 	// Init controllers
 	cmdCtrl := controller.NewCommandsController(bot, txnSvc, usersSvc, walletsSvc, usrStateSvc, exporterSvc, catSvc)
-	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc)
+	evtCtrl := controller.NewEventsController(bot, txnSvc, usrStateSvc, walletsSvc, catSvc, usersSvc)
 
 	// Commands
 	bot.Handle(defines.CommandStart, cmdCtrl.Start)

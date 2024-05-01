@@ -33,15 +33,17 @@ type eventsController struct {
 	usrStateSvc service.UserStateService
 	walletsSvc  service.WalletsService
 	catSvc      service.CategoriesService
+	usrSvc      service.UsersService
 }
 
-func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
+func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService, usrSvc service.UsersService) EventsController {
 	return &eventsController{
 		bot:         bot,
 		txnSvc:      txnSvc,
 		usrStateSvc: usrStateSvc,
 		walletsSvc:  walletsSvc,
 		catSvc:      catSvc,
+		usrSvc:      usrSvc,
 	}
 }
 
@@ -57,15 +59,16 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 		err = c.processState(ctx, usrState)
 		if err != nil {
 			c.errorHandler(ctx, err)
+			return err
 		}
-		return err
+		return nil
 	}
 
 	t := c.GetTypeFromMessage(ctx.Message())
 
 	switch t {
 	case messageTypeTransaction:
-		err = c.beginTransaction(ctx)
+		err = c.beginCreateTransaction(ctx)
 	default:
 		return nil
 	}
@@ -284,7 +287,7 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 	}
 */
 
-func (c *eventsController) beginTransaction(ctx tg.Context) error {
+func (c *eventsController) beginCreateTransaction(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
 	amount, description, err := c.getParametersFromMessage(ctx.Message().Text)
@@ -300,7 +303,8 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 		return err
 	}
 
-	wallets, err := c.walletsSvc.GetAll(userID)
+	token, err := c.usrSvc.GetToken(userID)
+	wallets, err := c.walletsSvc.GetAll(token)
 
 	kb := buildWalletsKeyboard(wallets)
 
@@ -322,7 +326,13 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 }
 func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	userID := ctx.Sender().ID
-	categories, err := c.catSvc.GetAll(userID)
+	token, err := c.usrSvc.GetToken(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	categories, err := c.catSvc.GetAll(token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -331,7 +341,7 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 	// Update and change status to next step: category selection
 	walletID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
 
-	var txn domain.TransactionDTO
+	var txn domain.APITransactionCreateRequest
 	err = maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -366,9 +376,14 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 }
 func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	userID := ctx.Sender().ID
+	token, err := c.usrSvc.GetToken(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
 
-	var txn domain.TransactionDTO
-	err := maptostruct.Convert(txnStatus.Data, &txn)
+	var txn domain.APITransactionCreateRequest
+	err = maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -376,13 +391,13 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 
 	catID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
 
-	cat, err := c.catSvc.GetByID(catID, userID)
+	cat, err := c.catSvc.GetByID(catID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	wal, err := c.walletsSvc.GetByID(txn.WalletID, userID)
+	wal, err := c.walletsSvc.GetByID(txn.WalletID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -390,13 +405,13 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 
 	// Create transaction
 	err = c.txnSvc.AddTransaction(
-		txn.UserID,
 		txn.MsgID,
 		txn.Amount,
 		txn.Description,
 		wal.ID,
 		cat.ID,
 		txn.CreatedAt,
+		token,
 	)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -507,7 +522,11 @@ func buildWalletsKeyboard(wallets *[]domain.APIWalletGetResponse) *tg.ReplyMarku
 	var btns []tg.Btn
 
 	for _, w := range *wallets {
-		btns = append(btns, kb.Data(w.Name, w.ID))
+		text := w.Name
+		if w.Emoji != "" {
+			text = w.Emoji + " " + text
+		}
+		btns = append(btns, kb.Data(text, w.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
@@ -520,7 +539,11 @@ func buildCategoriesKeyboard(c *[]domain.APICategoryGetResponse) *tg.ReplyMarkup
 	var btns []tg.Btn
 
 	for _, c := range *c {
-		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, c.ID))
+		text := c.Name
+		if c.Emoji != "" {
+			text = c.Emoji + " " + text
+		}
+		btns = append(btns, kb.Data(text, c.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
