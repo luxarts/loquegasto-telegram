@@ -16,4 +16,6 @@ var (
 
 	// Internal errors
 	ErrInvalidSyntax = errors.New("invalid syntax")
+
+	ErrSessionNotFound = errors.New("session not found")
 )

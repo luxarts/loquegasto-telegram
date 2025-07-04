@@ -23,6 +23,8 @@ USER appuser
 
 COPY --from=build /build/bin /app/
 
+EXPOSE 8080
+
 WORKDIR /app
 
 CMD ["./bin"]

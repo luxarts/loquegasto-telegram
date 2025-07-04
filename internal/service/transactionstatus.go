@@ -41,15 +41,14 @@ func (s *userStateService) SetState(userID int64, state string) error {
 func (s *userStateService) Create(userID int64, amount float64, description string, createdAt time.Time, msgID int64, status string) error {
 	dto := &domain.UserStateDTO{
 		State: status,
-		Data: domain.TransactionDTO{
+		Data: domain.APITransactionCreateRequest{
 			MsgID:       msgID,
-			UserID:      userID,
 			Amount:      amount,
 			Description: description,
 			CreatedAt:   &createdAt,
 		},
 	}
-	return s.repo.Create(dto)
+	return s.repo.Create(userID, dto)
 }
 func (s *userStateService) GetByUserID(userID int64) (*domain.UserStateDTO, error) {
 	return s.repo.GetByUserID(userID)

@@ -8,9 +8,9 @@ import (
 )
 
 type TransactionsService interface {
-	AddTransaction(userID int64, msgID int64, amount float64, description string, walletID int64, categoryID int64, timestamp *time.Time) error
-	UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID int64) error
-	GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error)
+	AddTransaction(msgID int64, amount float64, description string, walletID string, categoryID string, timestamp *time.Time, token string) error
+	UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID string) error
+	GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.APITransactionCreateRequest, error)
 }
 
 type transactionsService struct {
@@ -23,38 +23,33 @@ func NewTransactionsService(repo repository.TransactionsRepository) Transactions
 	}
 }
 
-func (srv *transactionsService) AddTransaction(userID int64, msgID int64, amount float64, description string, walletID int64, categoryID int64, timestamp *time.Time) error {
-	token := jwt.GenerateToken(nil, &jwt.Payload{
-		Subject: userID,
-	})
-
-	transactionDTO := domain.TransactionDTO{
+func (srv *transactionsService) AddTransaction(msgID int64, amount float64, description string, walletID string, categoryID string, timestamp *time.Time, token string) error {
+	req := domain.APITransactionCreateRequest{
 		MsgID:       msgID,
-		UserID:      userID,
-		Amount:      -amount,
+		Amount:      amount,
 		Description: description,
 		WalletID:    walletID,
 		CategoryID:  categoryID,
 		CreatedAt:   timestamp,
 	}
 
-	return srv.repo.Create(&transactionDTO, token)
+	return srv.repo.Create(&req, token)
 }
-func (srv *transactionsService) UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID int64) error {
+func (srv *transactionsService) UpdateTransaction(userID int64, msgID int64, amount float64, description string, walletID string) error {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})
 
-	dto := domain.TransactionDTO{
+	dto := domain.APITransactionCreateRequest{
 		MsgID:       msgID,
-		Amount:      -amount,
+		Amount:      amount,
 		Description: description,
 		WalletID:    walletID,
 	}
 
 	return srv.repo.UpdateByMsgID(msgID, &dto, token)
 }
-func (srv *transactionsService) GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.TransactionDTO, error) {
+func (srv *transactionsService) GetAll(userID int64, from *time.Time, to *time.Time) (*[]domain.APITransactionCreateRequest, error) {
 	token := jwt.GenerateToken(nil, &jwt.Payload{
 		Subject: userID,
 	})

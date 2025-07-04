@@ -33,15 +33,17 @@ type eventsController struct {
 	usrStateSvc service.UserStateService
 	walletsSvc  service.WalletsService
 	catSvc      service.CategoriesService
+	usrSvc      service.UsersService
 }
 
-func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService) EventsController {
+func NewEventsController(bot *tg.Bot, txnSvc service.TransactionsService, usrStateSvc service.UserStateService, walletsSvc service.WalletsService, catSvc service.CategoriesService, usrSvc service.UsersService) EventsController {
 	return &eventsController{
 		bot:         bot,
 		txnSvc:      txnSvc,
 		usrStateSvc: usrStateSvc,
 		walletsSvc:  walletsSvc,
 		catSvc:      catSvc,
+		usrSvc:      usrSvc,
 	}
 }
 
@@ -57,15 +59,18 @@ func (c *eventsController) Parse(ctx tg.Context) error {
 		err = c.processState(ctx, usrState)
 		if err != nil {
 			c.errorHandler(ctx, err)
+			return err
 		}
-		return err
+		return nil
 	}
 
 	t := c.GetTypeFromMessage(ctx.Message())
 
 	switch t {
 	case messageTypeTransaction:
-		err = c.beginTransaction(ctx)
+		err = c.beginCreateTransaction(ctx)
+	default:
+		return nil
 	}
 	return err
 }
@@ -106,9 +111,9 @@ func (c *eventsController) createCategoryWaitingName(ctx tg.Context, usrState *d
 	userID := ctx.Sender().ID
 	categoryName := ctx.Message().Text
 
-	cat, ok := usrState.Data.(domain.CategoryDTO)
+	cat, ok := usrState.Data.(domain.APICategoryCreateRequest)
 	if !ok {
-		cat = domain.CategoryDTO{}
+		cat = domain.APICategoryCreateRequest{}
 	}
 	cat.Name = categoryName
 	usrState.Data = cat
@@ -133,7 +138,7 @@ func (c *eventsController) createCategoryWaitingEmoji(ctx tg.Context, usrState *
 	userID := ctx.Sender().ID
 	categoryEmoji := ctx.Message().Text
 
-	var cat domain.CategoryDTO
+	var cat domain.APICategoryCreateRequest
 	err := maptostruct.Convert(usrState.Data, &cat)
 	if err != nil {
 		return err
@@ -163,9 +168,9 @@ func (c *eventsController) createWalletWaitingName(ctx tg.Context, usrState *dom
 	userID := ctx.Sender().ID
 	walletName := ctx.Message().Text
 
-	w, ok := usrState.Data.(domain.WalletDTO)
+	w, ok := usrState.Data.(domain.APIWalletCreateRequest)
 	if !ok {
-		w = domain.WalletDTO{}
+		w = domain.APIWalletCreateRequest{}
 	}
 	w.Name = walletName
 	usrState.Data = w
@@ -196,7 +201,7 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 		return err
 	}
 
-	var w domain.WalletDTO
+	var w domain.APIWalletCreateRequest
 	err = maptostruct.Convert(usrState.Data, &w)
 	if err != nil {
 		return err
@@ -204,9 +209,9 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 
 	createdAt := time.Unix(ctx.Message().Unixtime, 0)
 
-	w.Balance = balance
+	w.InitialAmount = balance
 
-	_, err = c.walletsSvc.Create(userID, w.Name, w.Balance, &createdAt)
+	_, err = c.walletsSvc.Create(userID, w.Name, w.InitialAmount, &createdAt)
 	if err != nil {
 		return err
 	}
@@ -282,7 +287,7 @@ func (c *eventsController) createWalletWaitingAmount(ctx tg.Context, usrState *d
 	}
 */
 
-func (c *eventsController) beginTransaction(ctx tg.Context) error {
+func (c *eventsController) beginCreateTransaction(ctx tg.Context) error {
 	userID := ctx.Sender().ID
 
 	amount, description, err := c.getParametersFromMessage(ctx.Message().Text)
@@ -298,7 +303,8 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 		return err
 	}
 
-	wallets, err := c.walletsSvc.GetAll(userID)
+	token, err := c.usrSvc.GetToken(userID)
+	wallets, err := c.walletsSvc.GetAll(token)
 
 	kb := buildWalletsKeyboard(wallets)
 
@@ -320,19 +326,22 @@ func (c *eventsController) beginTransaction(ctx tg.Context) error {
 }
 func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	userID := ctx.Sender().ID
-	categories, err := c.catSvc.GetAll(userID)
+	token, err := c.usrSvc.GetToken(userID)
+	if err != nil {
+		c.errorHandler(ctx, err)
+		return err
+	}
+
+	categories, err := c.catSvc.GetAll(token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
 	// Update and change status to next step: category selection
-	walletID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
-	if err != nil {
-		c.errorHandler(ctx, err)
-		return err
-	}
-	var txn domain.TransactionDTO
+	walletID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
+
+	var txn domain.APITransactionCreateRequest
 	err = maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -367,27 +376,28 @@ func (c *eventsController) walletSelection(ctx tg.Context, txnStatus *domain.Use
 }
 func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.UserStateDTO) error {
 	userID := ctx.Sender().ID
-
-	var txn domain.TransactionDTO
-	err := maptostruct.Convert(txnStatus.Data, &txn)
+	token, err := c.usrSvc.GetToken(userID)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	catID, err := strconv.ParseInt(strings.Replace(ctx.Callback().Data, "\f", "", 1), 10, 64)
+	var txn domain.APITransactionCreateRequest
+	err = maptostruct.Convert(txnStatus.Data, &txn)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	cat, err := c.catSvc.GetByID(catID, userID)
+	catID := strings.Replace(ctx.Callback().Data, "\f", "", 1)
+
+	cat, err := c.catSvc.GetByID(catID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
 	}
 
-	wal, err := c.walletsSvc.GetByID(txn.WalletID, userID)
+	wal, err := c.walletsSvc.GetByID(txn.WalletID, token)
 	if err != nil {
 		c.errorHandler(ctx, err)
 		return err
@@ -395,13 +405,13 @@ func (c *eventsController) categorySelection(ctx tg.Context, txnStatus *domain.U
 
 	// Create transaction
 	err = c.txnSvc.AddTransaction(
-		txn.UserID,
 		txn.MsgID,
 		txn.Amount,
 		txn.Description,
 		wal.ID,
 		cat.ID,
 		txn.CreatedAt,
+		token,
 	)
 	if err != nil {
 		c.errorHandler(ctx, err)
@@ -506,26 +516,34 @@ func (c *eventsController) botRespond(ctx tg.Context, msg string) {
 	}
 }
 
-func buildWalletsKeyboard(wallets *[]domain.WalletDTO) *tg.ReplyMarkup {
+func buildWalletsKeyboard(wallets *[]domain.APIWalletGetResponse) *tg.ReplyMarkup {
 	kb := &tg.ReplyMarkup{}
 
 	var btns []tg.Btn
 
 	for _, w := range *wallets {
-		btns = append(btns, kb.Data(w.Name, strconv.FormatInt(w.ID, 10)))
+		text := w.Name
+		if w.Emoji != "" {
+			text = w.Emoji + " " + text
+		}
+		btns = append(btns, kb.Data(text, w.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
 
 	return kb
 }
-func buildCategoriesKeyboard(c *[]domain.CategoryDTO) *tg.ReplyMarkup {
+func buildCategoriesKeyboard(c *[]domain.APICategoryGetResponse) *tg.ReplyMarkup {
 	kb := &tg.ReplyMarkup{}
 
 	var btns []tg.Btn
 
 	for _, c := range *c {
-		btns = append(btns, kb.Data(c.Emoji+" "+c.Name, strconv.FormatInt(c.ID, 10)))
+		text := c.Name
+		if c.Emoji != "" {
+			text = c.Emoji + " " + text
+		}
+		btns = append(btns, kb.Data(text, c.ID))
 	}
 	rows := kb.Split(2, btns)
 	kb.Inline(rows...)
